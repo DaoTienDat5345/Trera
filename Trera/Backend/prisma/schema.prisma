@@ -1,0 +1,246 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// USER
+// ─────────────────────────────────────────────
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+
+  // Relations
+  ownedProjects    Project[]       @relation("ProjectOwner")
+  projectMembers   ProjectMember[]
+  reportedIssues   Issue[]         @relation("IssueReporter")
+  assignedIssues   IssueAssignee[]
+  comments         Comment[]
+  activities       Activity[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// PROJECT
+// ─────────────────────────────────────────────
+model Project {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  key         String  @unique // e.g. "TRE" – prefix cho issue
+
+  // Relations
+  owner     User            @relation("ProjectOwner", fields: [ownerId], references: [id])
+  ownerId   String
+  members   ProjectMember[]
+  sprints   Sprint[]
+  issues    Issue[]
+  activities Activity[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("projects")
+}
+
+// ─────────────────────────────────────────────
+// PROJECT MEMBER (join table Project ↔ User)
+// ─────────────────────────────────────────────
+model ProjectMember {
+  id   String            @id @default(cuid())
+  role ProjectMemberRole @default(MEMBER)
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId]) // mỗi user chỉ có 1 role trong 1 project
+  @@map("project_members")
+}
+
+enum ProjectMemberRole {
+  ADMIN
+  MEMBER
+}
+
+// ─────────────────────────────────────────────
+// SPRINT
+// ─────────────────────────────────────────────
+model Sprint {
+  id     String       @id @default(cuid())
+  name   String
+  goal   String?
+  status SprintStatus @default(PLANNING)
+
+  startDate DateTime?
+  endDate   DateTime?
+
+  // Relations
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  issues    Issue[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sprints")
+}
+
+enum SprintStatus {
+  PLANNING
+  ACTIVE
+  COMPLETED
+}
+
+// ─────────────────────────────────────────────
+// ISSUE
+// ─────────────────────────────────────────────
+model Issue {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  status      IssueStatus @default(TODO)
+  priority    Priority    @default(MEDIUM)
+  type        IssueType   @default(TASK)
+  order       Int         @default(0) // dùng cho kéo thả Kanban
+
+  dueDate     DateTime?
+  completedAt DateTime?
+
+  // Relations
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  sprint   Sprint? @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  sprintId String?
+
+  reporter   User   @relation("IssueReporter", fields: [reporterId], references: [id])
+  reporterId String
+
+  assignees  IssueAssignee[]
+  labels     IssueLabel[]
+  comments   Comment[]
+  activities Activity[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId, status])         // filter theo project + status (Kanban)
+  @@index([projectId, sprintId])       // filter theo sprint
+  @@index([projectId, priority])       // filter theo priority
+  @@map("issues")
+}
+
+enum IssueStatus {
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum IssueType {
+  BUG
+  FEATURE
+  TASK
+  IMPROVEMENT
+}
+
+// ─────────────────────────────────────────────
+// ISSUE ASSIGNEE (join table Issue ↔ User)
+// ─────────────────────────────────────────────
+model IssueAssignee {
+  issue   Issue  @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  issueId String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId  String
+
+  assignedAt DateTime @default(now())
+
+  @@id([issueId, userId]) // composite primary key
+  @@map("issue_assignees")
+}
+
+// ─────────────────────────────────────────────
+// ISSUE LABEL (join table Issue ↔ Label string)
+// ─────────────────────────────────────────────
+model IssueLabel {
+  id      String @id @default(cuid())
+  label   String // e.g. "bug", "urgent", "backend"
+
+  issue   Issue  @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  issueId String
+
+  @@unique([issueId, label]) // không trùng label trong 1 issue
+  @@index([issueId])
+  @@map("issue_labels")
+}
+
+// ─────────────────────────────────────────────
+// COMMENT
+// ─────────────────────────────────────────────
+model Comment {
+  id      String @id @default(cuid())
+  content String
+
+  issue   Issue  @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  issueId String
+
+  author   User   @relation(fields: [authorId], references: [id])
+  authorId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([issueId])
+  @@map("comments")
+}
+
+// ─────────────────────────────────────────────
+// ACTIVITY LOG
+// ─────────────────────────────────────────────
+model Activity {
+  id     String @id @default(cuid())
+  action String // "created_issue" | "changed_status" | "assigned" | "commented" | "sprint_completed" | ...
+
+  // Metadata dạng JSON linh hoạt: { from, to, value, ... }
+  metadata Json @default("{}")
+
+  // Relations
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  issue   Issue?  @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  issueId String?
+
+  actor   User   @relation(fields: [actorId], references: [id])
+  actorId String
+
+  createdAt DateTime @default(now())
+
+  @@index([projectId, createdAt(sort: Desc)]) // query activity log nhanh
+  @@index([issueId])
+  @@map("activities")
+}
