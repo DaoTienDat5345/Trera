@@ -1,0 +1,699 @@
+{
+  "info": {
+    "_postman_id": "trera-api-collection-v1",
+    "name": "Trera - Jira Clone API",
+    "description": "Bộ sưu tập Postman hoàn chỉnh cho toàn bộ API của dự án Trera (Jira/Trello Clone).\n\nTự động lưu và truyền Token, Project ID, Sprint ID, Issue ID giữa các request mà không cần copy paste thủ công.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5001/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "projectId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sprintId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "issueId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "commentId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Register (Đăng ký tài khoản)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('token', json.token);",
+                  "    console.log('✅ Đã tự động lưu Token:', json.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nguyễn Văn A\",\n  \"email\": \"admin@trera.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Tạo tài khoản mới và tự động lưu Token vào biến môi trường để dùng cho các request tiếp theo."
+          }
+        },
+        {
+          "name": "Login (Đăng nhập)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('token', json.token);",
+                  "    console.log('✅ Đã tự động cập nhật Token mới:', json.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@trera.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Profile (Lấy thông tin cá nhân)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Update Profile (Đổi tên hiển thị)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nguyễn Văn A - Updated\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Projects & Members",
+      "item": [
+        {
+          "name": "Create Project (Tạo dự án mới)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('projectId', json.project.id);",
+                  "    console.log('✅ Đã lưu Project ID:', json.project.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dự án E-Commerce App\",\n  \"description\": \"Xây dựng hệ thống thương mại điện tử với React & Node.js\",\n  \"key\": \"ECO\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects"]
+            },
+            "description": "Tạo dự án mới. Tự động lưu projectId vào biến môi trường."
+          }
+        },
+        {
+          "name": "Get All Projects (Danh sách dự án của tôi)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects"]
+            }
+          }
+        },
+        {
+          "name": "Get Project Detail (Chi tiết dự án)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Project (Sửa tên & mô tả)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dự án E-Commerce App (V2)\",\n  \"description\": \"Nâng cấp tính năng thanh toán và giao diện\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}"]
+            }
+          }
+        },
+        {
+          "name": "Invite Member (Mời thành viên qua Email)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"member@trera.com\",\n  \"role\": \"MEMBER\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/members",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}", "members"]
+            }
+          }
+        },
+        {
+          "name": "Remove Member (Xoá thành viên)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/members/:userId",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}", "members", ":userId"]
+            }
+          }
+        },
+        {
+          "name": "Delete Project (Xoá dự án)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Sprints",
+      "item": [
+        {
+          "name": "Create Sprint (Tạo Sprint mới)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('sprintId', json.sprint.id);",
+                  "    console.log('✅ Đã lưu Sprint ID:', json.sprint.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sprint 1 - Xây dựng MVP\",\n  \"goal\": \"Hoàn thành trang đăng nhập và luồng mua hàng\",\n  \"startDate\": \"2026-09-08T00:00:00.000Z\",\n  \"endDate\": \"2026-09-22T00:00:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/sprints",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}", "sprints"]
+            }
+          }
+        },
+        {
+          "name": "Get All Sprints (Danh sách Sprint & Thống kê)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/sprints",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}", "sprints"]
+            }
+          }
+        },
+        {
+          "name": "Update Sprint (Sửa Sprint)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sprint 1 - Xây dựng MVP (Updated)\",\n  \"goal\": \"Mục tiêu bổ sung thêm thanh toán QR\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/sprints/{{sprintId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}", "sprints", "{{sprintId}}"]
+            }
+          }
+        },
+        {
+          "name": "Start Sprint (Bắt đầu Sprint -> ACTIVE)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/sprints/{{sprintId}}/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}", "sprints", "{{sprintId}}", "start"]
+            }
+          }
+        },
+        {
+          "name": "Complete Sprint (Kết thúc Sprint -> Tự động chuyển task chưa xong về Backlog)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/sprints/{{sprintId}}/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}", "sprints", "{{sprintId}}", "complete"]
+            }
+          }
+        },
+        {
+          "name": "Delete Sprint (Xoá Sprint Planning)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/sprints/{{sprintId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}", "sprints", "{{sprintId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Issues (Tasks, Bugs, Features)",
+      "item": [
+        {
+          "name": "Create Issue in Sprint (Tạo task trong Sprint)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('issueId', json.issue.id);",
+                  "    console.log('✅ Đã lưu Issue ID:', json.issue.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Thiết kế giao diện giỏ hàng\",\n  \"description\": \"Áp dụng shadcn/ui và TailwindCSS để tạo giỏ hàng mượt mà\",\n  \"type\": \"TASK\",\n  \"priority\": \"HIGH\",\n  \"status\": \"TODO\",\n  \"sprintId\": \"{{sprintId}}\",\n  \"labels\": [\"frontend\", \"ui\"],\n  \"dueDate\": \"2026-09-15T00:00:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/issues",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}", "issues"]
+            }
+          }
+        },
+        {
+          "name": "Create Issue in Backlog (Tạo task ở Backlog)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Nghiên cứu tính năng thông báo Realtime\",\n  \"description\": \"Sử dụng Socket.io hoặc Server-Sent Events\",\n  \"type\": \"FEATURE\",\n  \"priority\": \"LOW\",\n  \"labels\": [\"research\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/issues",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}", "issues"]
+            }
+          }
+        },
+        {
+          "name": "Get All Issues in Project (Lấy toàn bộ công việc)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/issues",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}", "issues"]
+            }
+          }
+        },
+        {
+          "name": "Get Backlog Issues (Lọc task trong Backlog)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/issues?sprintId=backlog",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}", "issues"],
+              "query": [{ "key": "sprintId", "value": "backlog" }]
+            }
+          }
+        },
+        {
+          "name": "Get Issue Detail (Chi tiết công việc)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/issues/{{issueId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["issues", "{{issueId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Issue (Cập nhật tiến độ sang DONE)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"DONE\",\n  \"priority\": \"URGENT\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/issues/{{issueId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["issues", "{{issueId}}"]
+            }
+          }
+        },
+        {
+          "name": "Reorder Issues (Kéo thả sắp xếp Kanban)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"updates\": [\n    {\n      \"id\": \"{{issueId}}\",\n      \"status\": \"IN_PROGRESS\",\n      \"order\": 0\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/issues/reorder",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}", "issues", "reorder"]
+            }
+          }
+        },
+        {
+          "name": "Delete Issue (Xoá công việc)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/issues/{{issueId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["issues", "{{issueId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Comments",
+      "item": [
+        {
+          "name": "Add Comment (Thêm bình luận)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('commentId', json.comment.id);",
+                  "    console.log('✅ Đã lưu Comment ID:', json.comment.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Mình vừa kiểm tra API và thấy phản hồi rất nhanh!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/issues/{{issueId}}/comments",
+              "host": ["{{baseUrl}}"],
+              "path": ["issues", "{{issueId}}", "comments"]
+            }
+          }
+        },
+        {
+          "name": "Get Comments (Danh sách bình luận của Issue)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/issues/{{issueId}}/comments",
+              "host": ["{{baseUrl}}"],
+              "path": ["issues", "{{issueId}}", "comments"]
+            }
+          }
+        },
+        {
+          "name": "Update Comment (Sửa bình luận)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Mình vừa kiểm tra lại, cần bổ sung thêm caching nhé.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/comments/{{commentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "{{commentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Comment (Xoá bình luận)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/comments/{{commentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "{{commentId}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+# Use this workspace to collaborate
+workspace:
+  id: f1773470-f8ba-4c1a-a3fc-da5e9a38a122
+
+localResources:
+  collections:
+    - ../Trera_Postman_Collection.json
