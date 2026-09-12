@@ -8,6 +8,15 @@ import Notfound from "./pages/Notfound";
 import { ProtectedRoute, PublicRoute } from "./components/common/ProtectedRoute";
 import { useAuthStore } from "./store/authStore";
 
+import ProjectsPage from "./pages/ProjectsPage";
+import ProjectBoardPage from "./pages/ProjectBoardPage";
+import SprintBacklogPage from "./pages/SprintBacklogPage";
+import ProjectMembersPage from "./pages/ProjectMembersPage";
+import ProfilePage from "./pages/ProfilePage";
+import ProfileSettingsPage from "./pages/ProfileSettingsPage";
+import ProfilePasswordPage from "./pages/ProfilePasswordPage";
+import AuthCallbackPage from "./pages/AuthCallbackPage";
+
 function App() {
   const { checkAuth } = useAuthStore();
 
@@ -20,10 +29,10 @@ function App() {
       <Toaster position="top-right" richColors closeButton />
       <BrowserRouter>
         <Routes>
-          {/* Trang giới thiệu (Introduce) */}
+          {/* Trang giới thiệu */}
           <Route path="/" element={<LandingPage />} />
 
-          {/* Trang Đăng nhập & Đăng ký (chuyển hướng vào /projects nếu đã đăng nhập) */}
+          {/* Trang Đăng nhập & Đăng ký */}
           <Route
             path="/login"
             element={
@@ -41,10 +50,18 @@ function App() {
             }
           />
 
+          {/* OAuth Callback */}
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
+
           {/* Các route yêu cầu đăng nhập */}
           <Route element={<ProtectedRoute />}>
-            <Route path="/projects" element={<div className="p-8 text-center">Dashboard Dự án (Đang xây dựng)</div>} />
-            <Route path="/projects/:id" element={<div className="p-8 text-center">Kanban Board (Đang xây dựng)</div>} />
+            <Route path="/projects" element={<ProjectsPage />} />
+            <Route path="/projects/:id" element={<ProjectBoardPage />} />
+            <Route path="/projects/:id/sprints" element={<SprintBacklogPage />} />
+            <Route path="/projects/:id/members" element={<ProjectMembersPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/profile/settings" element={<ProfileSettingsPage />} />
+            <Route path="/profile/password" element={<ProfilePasswordPage />} />
           </Route>
 
           {/* 404 Not Found */}

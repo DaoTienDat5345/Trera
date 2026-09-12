@@ -17,7 +17,9 @@ model User {
   id        String   @id @default(cuid())
   name      String
   email     String   @unique
-  password  String
+  password  String?            // Optional — null cho user đăng nhập qua Google
+  googleId  String?  @unique   // Google OAuth ID
+  avatar    String?            // URL ảnh từ Google
 
   // Relations
   ownedProjects    Project[]       @relation("ProjectOwner")

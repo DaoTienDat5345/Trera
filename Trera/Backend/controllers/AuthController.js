@@ -162,3 +162,78 @@ export const updateMe = async (req, res) => {
     return res.status(500).json({ message: "Lỗi hệ thống khi cập nhật thông tin." });
   }
 };
+
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Vui lòng nhập đầy đủ mật khẩu hiện tại và mật khẩu mới." });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Mật khẩu mới phải chứa ít nhất 6 ký tự." });
+    }
+
+    // Lấy user kèm password hash từ DB
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Mật khẩu hiện tại không chính xác." });
+    }
+
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ message: "Mật khẩu mới phải khác mật khẩu hiện tại." });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { password: hashedPassword },
+    });
+
+    return res.status(200).json({ message: "Đổi mật khẩu thành công!" });
+  } catch (error) {
+    console.error("Lỗi đổi mật khẩu:", error);
+    return res.status(500).json({ message: "Lỗi hệ thống khi đổi mật khẩu." });
+  }
+};
+
+// Google OAuth callback — được gọi sau khi Passport xác thực thành công
+export const googleCallback = (req, res) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.redirect(
+        `${process.env.FRONTEND_URL || "http://localhost:5173"}/login?error=google_failed`
+      );
+    }
+
+    const token = generateToken(user.id);
+
+    // Tạo safe user object (không có password, googleId)
+    const safeUser = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar ?? null,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+
+    // Encode user data vào URL để frontend đọc
+    const userEncoded = encodeURIComponent(JSON.stringify(safeUser));
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+
+    return res.redirect(
+      `${frontendUrl}/auth/callback?token=${token}&user=${userEncoded}`
+    );
+  } catch (error) {
+    console.error("Lỗi Google OAuth callback:", error);
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    return res.redirect(`${frontendUrl}/login?error=server_error`);
+  }
+};

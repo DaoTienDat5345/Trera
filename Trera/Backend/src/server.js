@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import passport from "../config/passport.js";
 
 import AuthRouter from "./router/AuthRouter.js";
 import ProjectRouter from "./router/ProjectRouter.js";
@@ -13,8 +14,12 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 5001;
 
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
+app.use(cors({
+  origin: process.env.CLIENT_URL || "http://localhost:5173",
+  credentials: true,
+}));
 app.use(express.json());
+app.use(passport.initialize());
 
 // Health check
 app.get("/api/health", (req, res) => {

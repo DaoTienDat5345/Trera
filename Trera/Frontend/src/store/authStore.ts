@@ -5,6 +5,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  avatar?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -19,6 +20,8 @@ interface AuthState {
   logout: () => void;
   checkAuth: () => Promise<void>;
   updateName: (name: string) => Promise<{ success: boolean; message?: string }>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message?: string }>;
+  setAuthData: (user: User, token: string) => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -43,13 +46,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       localStorage.setItem("trera_token", token);
       localStorage.setItem("trera_user", JSON.stringify(user));
 
-      set({
-        user,
-        token,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-
+      set({ user, token, isAuthenticated: true, isLoading: false });
       return { success: true, message };
     } catch (error: any) {
       set({ isLoading: false });
@@ -67,13 +64,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       localStorage.setItem("trera_token", token);
       localStorage.setItem("trera_user", JSON.stringify(user));
 
-      set({
-        user,
-        token,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-
+      set({ user, token, isAuthenticated: true, isLoading: false });
       return { success: true, message };
     } catch (error: any) {
       set({ isLoading: false });
@@ -85,11 +76,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: () => {
     localStorage.removeItem("trera_token");
     localStorage.removeItem("trera_user");
-    set({
-      user: null,
-      token: null,
-      isAuthenticated: false,
-    });
+    set({ user: null, token: null, isAuthenticated: false });
   },
 
   checkAuth: async () => {
@@ -98,7 +85,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ isAuthenticated: false, user: null });
       return;
     }
-
     try {
       const res = await api.get("/auth/me");
       const user = res.data.user;
@@ -120,5 +106,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const message = error.response?.data?.message || "Cập nhật tên thất bại.";
       return { success: false, message };
     }
+  },
+
+  changePassword: async (currentPassword, newPassword) => {
+    try {
+      const res = await api.put("/auth/me/password", { currentPassword, newPassword });
+      return { success: true, message: res.data.message };
+    } catch (error: any) {
+      const message = error.response?.data?.message || "Đổi mật khẩu thất bại.";
+      return { success: false, message };
+    }
+  },
+
+  setAuthData: (user, token) => {
+    localStorage.setItem("trera_token", token);
+    localStorage.setItem("trera_user", JSON.stringify(user));
+    set({
+      user,
+      token,
+      isAuthenticated: true,
+      isLoading: false,
+    });
   },
 }));
