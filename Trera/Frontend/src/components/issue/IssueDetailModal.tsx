@@ -1,12 +1,16 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { X, Edit2, Trash2, Send, Clock, AlertCircle, ArrowUp, ArrowDown, Minus, Bug, BookOpen, Zap, CheckCircle2, Layers, CalendarDays, User2, Tag, GitMerge, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
-import type { Issue, IssueStatus, IssuePriority, IssueType, Comment } from "../../store/issueStore";
+import type { Issue, IssueStatus, IssuePriority, IssueType, Comment, Attachment } from "../../store/issueStore";
 import { useIssueStore } from "../../store/issueStore";
 import type { Sprint } from "../../store/sprintStore";
 import { useAuthStore } from "../../store/authStore";
 import type { ProjectMember } from "../../store/projectStore";
 import UserAvatar from "../common/UserAvatar";
+import { getSocket } from "../../lib/socket";
+import ChecklistSection from "./ChecklistSection";
+import AttachmentSection from "./AttachmentSection";
+import ImageLightboxModal from "./ImageLightboxModal";
 
 // ---- helpers ----
 const STATUS_OPTIONS: { value: IssueStatus; label: string }[] = [
@@ -137,7 +141,20 @@ interface IssueDetailModalProps {
 
 export default function IssueDetailModal({ issue: initialIssue, sprints, members, onClose, onDelete }: IssueDetailModalProps) {
   const { user } = useAuthStore();
-  const { updateIssue, deleteIssue, addComment, updateComment, deleteComment, fetchIssueById } = useIssueStore();
+  const {
+    updateIssue,
+    deleteIssue,
+    addComment,
+    updateComment,
+    deleteComment,
+    fetchIssueById,
+    uploadAttachment,
+    handleRealtimeChecklistCreated,
+    handleRealtimeChecklistUpdated,
+    handleRealtimeChecklistDeleted,
+    handleRealtimeAttachmentCreated,
+    handleRealtimeAttachmentDeleted,
+  } = useIssueStore();
 
   const [issue, setIssue] = useState<Issue>(initialIssue);
   const [isLoadingFull, setIsLoadingFull] = useState(false);
@@ -147,8 +164,9 @@ export default function IssueDetailModal({ issue: initialIssue, sprints, members
   const [editingDesc, setEditingDesc] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
 
-  // Load full issue with comments on open
+  // Load full issue with comments, checklists, attachments on open
   useEffect(() => {
     (async () => {
       setIsLoadingFull(true);
@@ -157,6 +175,142 @@ export default function IssueDetailModal({ issue: initialIssue, sprints, members
       setIsLoadingFull(false);
     })();
   }, [initialIssue.id]);
+
+  // Lắng nghe sự kiện paste (Ctrl + V) trên toàn modal để tải ảnh từ clipboard
+  useEffect(() => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      const clipboardItems = e.clipboardData?.items;
+      if (!clipboardItems) return;
+
+      const imageFiles: File[] = [];
+      for (let i = 0; i < clipboardItems.length; i++) {
+        const item = clipboardItems[i];
+        if (item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) imageFiles.push(file);
+        }
+      }
+
+      if (imageFiles.length > 0) {
+        toast.info("Đang tải ảnh chụp màn hình từ clipboard...");
+        for (const file of imageFiles) {
+          const res = await uploadAttachment(issue.id, file);
+          if (res.success) {
+            toast.success("Đã dán và tải ảnh lên thành công!");
+          } else {
+            toast.error(`Lỗi dán ảnh: ${res.message}`);
+          }
+        }
+      }
+    };
+
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, [issue.id, uploadAttachment]);
+
+  // Lắng nghe bình luận, checklist và tệp đính kèm thời gian thực khi đang mở modal
+  useEffect(() => {
+    const socket = getSocket();
+    const onCommentNew = ({ issueId, comment }: { issueId: string; comment: Comment }) => {
+      if (issueId === issue.id) {
+        setIssue((prev) => {
+          if (prev.comments?.some((c) => c.id === comment.id)) return prev;
+          return {
+            ...prev,
+            comments: [...(prev.comments || []), comment],
+            _count: { comments: (prev._count?.comments || 0) + 1 },
+          };
+        });
+      }
+    };
+
+    const onChecklistCreated = ({ issueId, item }: { issueId: string; item: any }) => {
+      if (issueId === issue.id) {
+        handleRealtimeChecklistCreated(issueId, item);
+        setIssue((prev) => {
+          if (prev.checklistItems?.some((c) => c.id === item.id)) return prev;
+          return {
+            ...prev,
+            checklistItems: [...(prev.checklistItems || []), item],
+          };
+        });
+      }
+    };
+
+    const onChecklistUpdated = ({ issueId, item }: { issueId: string; item: any }) => {
+      if (issueId === issue.id) {
+        handleRealtimeChecklistUpdated(issueId, item);
+        setIssue((prev) => ({
+          ...prev,
+          checklistItems: prev.checklistItems?.map((c) => (c.id === item.id ? item : c)),
+        }));
+      }
+    };
+
+    const onChecklistDeleted = ({ issueId, itemId }: { issueId: string; itemId: string }) => {
+      if (issueId === issue.id) {
+        handleRealtimeChecklistDeleted(issueId, itemId);
+        setIssue((prev) => ({
+          ...prev,
+          checklistItems: prev.checklistItems?.filter((c) => c.id !== itemId),
+        }));
+      }
+    };
+
+    const onAttachmentCreated = ({ issueId, attachment }: { issueId: string; attachment: any }) => {
+      if (issueId === issue.id) {
+        handleRealtimeAttachmentCreated(issueId, attachment);
+        setIssue((prev) => {
+          if (prev.attachments?.some((a) => a.id === attachment.id)) return prev;
+          return {
+            ...prev,
+            attachments: [attachment, ...(prev.attachments || [])],
+            _count: {
+              ...prev._count,
+              attachments: (prev._count?.attachments || 0) + 1,
+            },
+          };
+        });
+      }
+    };
+
+    const onAttachmentDeleted = ({ issueId, attachmentId }: { issueId: string; attachmentId: string }) => {
+      if (issueId === issue.id) {
+        handleRealtimeAttachmentDeleted(issueId, attachmentId);
+        setIssue((prev) => ({
+          ...prev,
+          attachments: prev.attachments?.filter((a) => a.id !== attachmentId),
+          _count: {
+            ...prev._count,
+            attachments: Math.max(0, (prev._count?.attachments || 1) - 1),
+          },
+        }));
+      }
+    };
+
+    socket.on("comment:new", onCommentNew);
+    socket.on("issue:checklist:created", onChecklistCreated);
+    socket.on("issue:checklist:updated", onChecklistUpdated);
+    socket.on("issue:checklist:deleted", onChecklistDeleted);
+    socket.on("issue:attachment:created", onAttachmentCreated);
+    socket.on("issue:attachment:deleted", onAttachmentDeleted);
+
+    return () => {
+      socket.off("comment:new", onCommentNew);
+      socket.off("issue:checklist:created", onChecklistCreated);
+      socket.off("issue:checklist:updated", onChecklistUpdated);
+      socket.off("issue:checklist:deleted", onChecklistDeleted);
+      socket.off("issue:attachment:created", onAttachmentCreated);
+      socket.off("issue:attachment:deleted", onAttachmentDeleted);
+    };
+  }, [
+    issue.id,
+    handleRealtimeChecklistCreated,
+    handleRealtimeChecklistUpdated,
+    handleRealtimeChecklistDeleted,
+    handleRealtimeAttachmentCreated,
+    handleRealtimeAttachmentDeleted,
+  ]);
 
   const handleFieldUpdate = async (field: string, value: unknown) => {
     const prev = issue;
@@ -314,8 +468,27 @@ export default function IssueDetailModal({ issue: initialIssue, sprints, members
               )}
             </div>
 
+            {/* Checklist / Subtasks */}
+            <div className="pt-2 border-t border-slate-100">
+              <ChecklistSection
+                issueId={issue.id}
+                items={issue.checklistItems || []}
+                attachments={issue.attachments || []}
+                onPreviewImage={(att) => setPreviewAttachment(att)}
+              />
+            </div>
+
+            {/* Attachments / Files */}
+            <div className="pt-2 border-t border-slate-100">
+              <AttachmentSection
+                issueId={issue.id}
+                attachments={issue.attachments || []}
+                onPreviewImage={(att) => setPreviewAttachment(att)}
+              />
+            </div>
+
             {/* Comments */}
-            <div>
+            <div className="pt-2 border-t border-slate-100">
               <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide flex items-center gap-2 mb-3">
                 <MessageSquare size={11} /> Bình luận ({issue.comments?.length ?? 0})
               </label>
@@ -501,6 +674,14 @@ export default function IssueDetailModal({ issue: initialIssue, sprints, members
           </div>
         </div>
       </div>
+
+      {/* Image Lightbox Preview Modal */}
+      {previewAttachment && (
+        <ImageLightboxModal
+          attachment={previewAttachment}
+          onClose={() => setPreviewAttachment(null)}
+        />
+      )}
     </>
   );
 }

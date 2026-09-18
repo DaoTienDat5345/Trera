@@ -1,8 +1,8 @@
-﻿import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import {
   LayoutGrid, List, GitMerge, Users, Settings, Search, Filter,
-  ChevronDown, Plus, RefreshCw, ArrowLeft, Play, CheckSquare
+  ChevronDown, Plus, RefreshCw, ArrowLeft, Play, CheckSquare, BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -11,18 +11,37 @@ import { KanbanBoard } from "../components/issue/KanbanBoard";
 import IssueDetailModal from "../components/issue/IssueDetailModal";
 import CreateIssueModal from "../components/issue/CreateIssueModal";
 
+import { useAuthStore } from "../store/authStore";
 import { useProjectStore } from "../store/projectStore";
 import { useSprintStore } from "../store/sprintStore";
 import { useIssueStore } from "../store/issueStore";
 import type { Issue, IssueStatus, IssuePriority, IssueType } from "../store/issueStore";
+import { getSocket, joinProjectRoom, leaveProjectRoom } from "../lib/socket";
 
 export default function ProjectBoardPage() {
   const { id: projectId } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
+  const { user } = useAuthStore();
   const { getProjectById, currentProject } = useProjectStore();
   const { sprints, fetchSprints, createSprint, startSprint, completeSprint } = useSprintStore();
-  const { issues, fetchIssues, reorderIssues } = useIssueStore();
+  const {
+    issues,
+    fetchIssues,
+    reorderIssues,
+    handleRealtimeIssueCreated,
+    handleRealtimeIssueUpdated,
+    handleRealtimeIssueDeleted,
+    handleRealtimeIssueReordered,
+    handleRealtimeCommentCreated,
+    handleRealtimeChecklistCreated,
+    handleRealtimeChecklistUpdated,
+    handleRealtimeChecklistDeleted,
+    handleRealtimeAttachmentCreated,
+    handleRealtimeAttachmentDeleted,
+  } = useIssueStore();
+
+  const [isLive, setIsLive] = useState(false);
 
   const [selectedSprintId, setSelectedSprintId] = useState<string>("all");
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
@@ -48,6 +67,108 @@ export default function ProjectBoardPage() {
   }, [projectId]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
+
+  // Tham gia phòng dự án & lắng nghe sự kiện Kanban thời gian thực
+  useEffect(() => {
+    if (!projectId) return;
+
+    joinProjectRoom(projectId);
+    const socket = getSocket();
+
+    const handleConnect = () => {
+      setIsLive(true);
+      joinProjectRoom(projectId);
+    };
+    const handleDisconnect = () => setIsLive(false);
+
+    if (socket.connected) {
+      setIsLive(true);
+    }
+
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
+
+    const onIssueCreated = (created: Issue) => {
+      if (created.projectId === projectId) {
+        handleRealtimeIssueCreated(created);
+        toast.info(`Task mới vừa được tạo: "${created.title}"`);
+      }
+    };
+
+    const onIssueUpdated = (updated: Issue) => {
+      if (updated.projectId === projectId) {
+        handleRealtimeIssueUpdated(updated);
+      }
+    };
+
+    const onIssueDeleted = ({ issueId }: { issueId: string }) => {
+      handleRealtimeIssueDeleted(issueId);
+    };
+
+    const onIssueReordered = ({ updates }: { updates: any[] }) => {
+      handleRealtimeIssueReordered(updates);
+    };
+
+    const onCommentNew = ({ issueId, comment }: { issueId: string; comment: any }) => {
+      handleRealtimeCommentCreated(issueId, comment);
+    };
+
+    const onChecklistCreated = ({ issueId, item }: { issueId: string; item: any }) => {
+      handleRealtimeChecklistCreated(issueId, item);
+    };
+    const onChecklistUpdated = ({ issueId, item }: { issueId: string; item: any }) => {
+      handleRealtimeChecklistUpdated(issueId, item);
+    };
+    const onChecklistDeleted = ({ issueId, itemId }: { issueId: string; itemId: string }) => {
+      handleRealtimeChecklistDeleted(issueId, itemId);
+    };
+    const onAttachmentCreated = ({ issueId, attachment }: { issueId: string; attachment: any }) => {
+      handleRealtimeAttachmentCreated(issueId, attachment);
+    };
+    const onAttachmentDeleted = ({ issueId, attachmentId }: { issueId: string; attachmentId: string }) => {
+      handleRealtimeAttachmentDeleted(issueId, attachmentId);
+    };
+
+    socket.on("issue:created", onIssueCreated);
+    socket.on("issue:updated", onIssueUpdated);
+    socket.on("issue:deleted", onIssueDeleted);
+    socket.on("issue:reordered", onIssueReordered);
+    socket.on("comment:new", onCommentNew);
+    socket.on("issue:checklist:created", onChecklistCreated);
+    socket.on("issue:checklist:updated", onChecklistUpdated);
+    socket.on("issue:checklist:deleted", onChecklistDeleted);
+    socket.on("issue:attachment:created", onAttachmentCreated);
+    socket.on("issue:attachment:deleted", onAttachmentDeleted);
+
+    return () => {
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
+      socket.off("issue:created", onIssueCreated);
+      socket.off("issue:updated", onIssueUpdated);
+      socket.off("issue:deleted", onIssueDeleted);
+      socket.off("issue:reordered", onIssueReordered);
+      socket.off("comment:new", onCommentNew);
+      socket.off("issue:checklist:created", onChecklistCreated);
+      socket.off("issue:checklist:updated", onChecklistUpdated);
+      socket.off("issue:checklist:deleted", onChecklistDeleted);
+      socket.off("issue:attachment:created", onAttachmentCreated);
+      socket.off("issue:attachment:deleted", onAttachmentDeleted);
+      leaveProjectRoom(projectId);
+    };
+  }, [
+    projectId,
+    user?.id,
+    handleRealtimeIssueCreated,
+    handleRealtimeIssueUpdated,
+    handleRealtimeIssueDeleted,
+    handleRealtimeIssueReordered,
+    handleRealtimeCommentCreated,
+    handleRealtimeChecklistCreated,
+    handleRealtimeChecklistUpdated,
+    handleRealtimeChecklistDeleted,
+    handleRealtimeAttachmentCreated,
+    handleRealtimeAttachmentDeleted,
+  ]);
 
   // Filter issues for board
   const displayedIssues = issues.filter((i) => {
@@ -177,6 +298,18 @@ export default function ProjectBoardPage() {
               >
                 <Users size={14} /> Thành viên
               </Link>
+              <Link
+                to={`/projects/${projectId}/reports`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+              >
+                <BarChart3 size={14} /> Báo cáo
+              </Link>
+              <Link
+                to={`/projects/${projectId}/activity`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+              >
+                <GitMerge size={14} /> Lịch sử
+              </Link>
             </nav>
 
             <div className="ml-auto flex items-center gap-2">
@@ -206,6 +339,23 @@ export default function ProjectBoardPage() {
                   <Play size={13} /> Bắt đầu "{planningSprints[0].name}"
                 </button>
               )}
+
+              {/* Live status badge */}
+              <div
+                className={`flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
+                  isLive
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : "bg-slate-100 text-slate-500 border-slate-200"
+                }`}
+                title={isLive ? "Đang kết nối thời gian thực" : "Chưa kết nối thời gian thực"}
+              >
+                <span
+                  className={`size-2 rounded-full ${
+                    isLive ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
+                  }`}
+                />
+                <span className="font-medium hidden sm:inline">{isLive ? "Trực tiếp" : "Offline"}</span>
+              </div>
 
               {/* Refresh */}
               <button onClick={loadAll} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors" title="Làm mới">

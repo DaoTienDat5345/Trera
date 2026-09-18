@@ -14,7 +14,8 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
   Bug, BookOpen, Zap, Layers, AlertCircle, ArrowUp, ArrowDown,
-  Minus, CheckCircle2, Clock, Eye, Circle, GripVertical, MessageSquare, CalendarDays
+  Minus, CheckCircle2, Clock, Eye, Circle, GripVertical, MessageSquare, CalendarDays,
+  CheckSquare, Paperclip
 } from "lucide-react";
 import type { Issue, IssueStatus } from "../../store/issueStore";
 import UserAvatar from "../common/UserAvatar";
@@ -85,6 +86,10 @@ export function IssueCard({ issue, onClick, overlay }: IssueCardProps) {
     : null;
   const isOverdue = issue.dueDate && new Date(issue.dueDate) < new Date() && issue.status !== "DONE";
 
+  const checklistTotal = issue.checklistItems?.length ?? 0;
+  const checklistCompleted = issue.checklistItems?.filter((c) => c.isCompleted).length ?? 0;
+  const attachmentsCount = issue._count?.attachments ?? issue.attachments?.length ?? 0;
+
   return (
     <div
       ref={setNodeRef}
@@ -129,6 +134,24 @@ export function IssueCard({ issue, onClick, overlay }: IssueCardProps) {
               <UserAvatar key={a.user.id} name={a.user.name} size="xs" />
             ))}
           </div>
+          {checklistTotal > 0 && (
+            <span
+              className={`flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                checklistCompleted === checklistTotal
+                  ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
+                  : "bg-slate-100 text-slate-600"
+              }`}
+              title={`Tiến độ việc con: ${checklistCompleted}/${checklistTotal}`}
+            >
+              <CheckSquare size={10} />
+              <span>{checklistCompleted}/{checklistTotal}</span>
+            </span>
+          )}
+          {attachmentsCount > 0 && (
+            <span className="flex items-center gap-0.5 text-[10px] text-slate-400" title={`${attachmentsCount} tệp đính kèm`}>
+              <Paperclip size={10} /> {attachmentsCount}
+            </span>
+          )}
           {(issue._count?.comments ?? 0) > 0 && (
             <span className="flex items-center gap-0.5 text-[10px] text-slate-400">
               <MessageSquare size={10} /> {issue._count!.comments}

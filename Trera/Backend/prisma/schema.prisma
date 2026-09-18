@@ -28,6 +28,9 @@ model User {
   assignedIssues   IssueAssignee[]
   comments         Comment[]
   activities       Activity[]
+  notifications    Notification[]  @relation("UserNotifications")
+  actedNotifs      Notification[]  @relation("NotificationActor")
+  attachments      Attachment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -135,10 +138,12 @@ model Issue {
   reporter   User   @relation("IssueReporter", fields: [reporterId], references: [id])
   reporterId String
 
-  assignees  IssueAssignee[]
-  labels     IssueLabel[]
-  comments   Comment[]
-  activities Activity[]
+  assignees      IssueAssignee[]
+  labels         IssueLabel[]
+  comments       Comment[]
+  activities     Activity[]
+  checklistItems ChecklistItem[]
+  attachments    Attachment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -245,4 +250,86 @@ model Activity {
   @@index([projectId, createdAt(sort: Desc)]) // query activity log nhanh
   @@index([issueId])
   @@map("activities")
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATION (In-App)
+// ─────────────────────────────────────────────
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  title     String
+  message   String
+  link      String?          // URL tương đối, VD: "/projects/xxx"
+
+  isRead    Boolean          @default(false)
+
+  userId    String           // Người nhận thông báo
+  user      User             @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+
+  actorId   String?          // Người thực hiện hành động
+  actor     User?            @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  ISSUE_ASSIGNED
+  ISSUE_STATUS_CHANGED
+  COMMENT_ADDED
+  SPRINT_STARTED
+  SYSTEM
+}
+
+// ─────────────────────────────────────────────
+// CHECKLIST ITEM (Công việc con / Subtask)
+// ─────────────────────────────────────────────
+model ChecklistItem {
+  id          String   @id @default(cuid())
+  title       String
+  isCompleted Boolean  @default(false)
+  order       Int      @default(0)
+
+  issue       Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  issueId     String
+
+  attachments Attachment[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([issueId])
+  @@map("checklist_items")
+}
+
+// ─────────────────────────────────────────────
+// ATTACHMENT (Tệp / Ảnh đính kèm)
+// ─────────────────────────────────────────────
+model Attachment {
+  id              String         @id @default(cuid())
+  filename        String         // Tên file lưu trữ trên disk hoặc public_id Cloudinary
+  originalName    String         // Tên file gốc do người dùng tải lên
+  mimeType        String         // Loại MIME (image/png, application/pdf,...)
+  size            Int            // Dung lượng (bytes)
+  url             String         // URL công khai (Cloudinary CDN URL hoặc /uploads/...)
+  publicId        String?        // Cloudinary public_id (để hỗ trợ xoá từ xa trên Cloud)
+
+  issue           Issue          @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  issueId         String
+
+  checklistItem   ChecklistItem? @relation(fields: [checklistItemId], references: [id], onDelete: Cascade)
+  checklistItemId String?
+
+  uploader        User           @relation(fields: [uploaderId], references: [id])
+  uploaderId      String
+
+  createdAt       DateTime       @default(now())
+
+  @@index([issueId])
+  @@index([checklistItemId])
+  @@map("attachments")
 }

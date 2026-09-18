@@ -1,5 +1,7 @@
 import { prisma } from "../config/prisma.js";
 import { sendIssueAssignedEmail, sendStatusChangedEmail } from "../services/emailService.js";
+import { notifyAssignment, notifyStatusChange } from "../services/notificationService.js";
+import { emitToProject } from "../config/socket.js";
 
 /**
  * Lấy danh sách Issue của dự án (hỗ trợ filter, search, sprint)
@@ -48,8 +50,11 @@ export const getAllIssues = async (req, res) => {
         labels: {
           select: { id: true, label: true },
         },
+        checklistItems: {
+          select: { id: true, isCompleted: true },
+        },
         _count: {
-          select: { comments: true },
+          select: { comments: true, attachments: true },
         },
       },
       orderBy: [{ order: "asc" }, { createdAt: "desc" }],
@@ -151,19 +156,19 @@ export const createIssue = async (req, res) => {
       return issue;
     });
 
-    // Gửi email thông báo cho các assignees
+    // Kích hoạt thông báo In-App + Email cho assignees và Admin
     if (newIssue.assignees && newIssue.assignees.length > 0) {
-      newIssue.assignees.forEach(({ user }) => {
-        if (user.id !== req.user.id) {
-          sendIssueAssignedEmail({
-            user,
-            issue: newIssue,
-            project: req.project,
-            assignerName: req.user.name,
-          }).catch((err) => console.error("Lỗi gửi mail assign:", err.message));
-        }
-      });
+      notifyAssignment({
+        actorId: req.user.id,
+        actorName: req.user.name,
+        assigneeIds: newIssue.assignees.map((a) => a.user.id),
+        issue: newIssue,
+        project: req.project,
+      }).catch((err) => console.error("Lỗi notifyAssignment createIssue:", err.message));
     }
+
+    // Phát sóng real-time cho các thành viên trong dự án
+    emitToProject(projectId, "issue:created", newIssue);
 
     return res.status(201).json({
       message: "Tạo công việc thành công!",
@@ -212,6 +217,18 @@ export const getIssueById = async (req, res) => {
         activities: {
           include: {
             actor: { select: { id: true, name: true } },
+          },
+          orderBy: { createdAt: "desc" },
+        },
+        checklistItems: {
+          include: {
+            attachments: true,
+          },
+          orderBy: { order: "asc" },
+        },
+        attachments: {
+          include: {
+            uploader: { select: { id: true, name: true, avatar: true } },
           },
           orderBy: { createdAt: "desc" },
         },
@@ -360,37 +377,38 @@ export const updateIssue = async (req, res) => {
       return issue;
     });
 
-    // Thông báo email khi status thay đổi
-    if (status && status !== currentIssue.status && updatedIssue.assignees.length > 0) {
-      const targetUsers = updatedIssue.assignees.map((a) => a.user).filter((u) => u.id !== req.user.id);
-      if (targetUsers.length > 0) {
-        sendStatusChangedEmail({
-          users: targetUsers,
+    // Thông báo In-App + Email khi status thay đổi
+    if (status && status !== currentIssue.status) {
+      notifyStatusChange({
+        actorId: req.user.id,
+        actorName: req.user.name,
+        issue: updatedIssue,
+        oldStatus: currentIssue.status,
+        newStatus: status,
+        project: currentIssue.project,
+      }).catch((err) => console.error("Lỗi notifyStatusChange updateIssue:", err.message));
+    }
+
+    // Thông báo In-App + Email cho những người vừa được assign mới
+    if (assigneeIds !== undefined) {
+      const oldAssigneeIds = currentIssue.assignees.map((a) => a.userId);
+      const newlyAssignedIds = updatedIssue.assignees
+        .filter((a) => !oldAssigneeIds.includes(a.user.id))
+        .map((a) => a.user.id);
+
+      if (newlyAssignedIds.length > 0) {
+        notifyAssignment({
+          actorId: req.user.id,
+          actorName: req.user.name,
+          assigneeIds: newlyAssignedIds,
           issue: updatedIssue,
           project: currentIssue.project,
-          fromStatus: currentIssue.status,
-          toStatus: status,
-          updaterName: req.user.name,
-        });
+        }).catch((err) => console.error("Lỗi notifyAssignment updateIssue:", err.message));
       }
     }
 
-    // Thông báo email cho những người vừa được assign mới
-    if (assigneeIds !== undefined) {
-      const oldAssigneeIds = currentIssue.assignees.map((a) => a.userId);
-      const newlyAssigned = updatedIssue.assignees
-        .filter((a) => !oldAssigneeIds.includes(a.user.id) && a.user.id !== req.user.id)
-        .map((a) => a.user);
-
-      newlyAssigned.forEach((user) => {
-        sendIssueAssignedEmail({
-          user,
-          issue: updatedIssue,
-          project: currentIssue.project,
-          assignerName: req.user.name,
-        }).catch((err) => console.error("Lỗi gửi mail assign mới:", err.message));
-      });
-    }
+    // Phát sóng real-time cho các thành viên trong dự án
+    emitToProject(currentIssue.projectId, "issue:updated", updatedIssue);
 
     return res.status(200).json({
       message: "Cập nhật công việc thành công!",
@@ -453,6 +471,9 @@ export const deleteIssue = async (req, res) => {
       });
     });
 
+    // Phát sóng real-time cho các thành viên trong dự án
+    emitToProject(issue.projectId, "issue:deleted", { issueId });
+
     return res.status(200).json({
       message: `Đã xoá công việc "${issue.title}" thành công!`,
     });
@@ -467,10 +488,25 @@ export const deleteIssue = async (req, res) => {
  */
 export const reorderIssues = async (req, res) => {
   try {
-    const { updates } = req.body; // Mảng: [ { id, status, order } ]
+    const { updates, clientSocketId } = req.body; // Mảng: [ { id, status, order } ]
 
     if (!Array.isArray(updates) || updates.length === 0) {
       return res.status(400).json({ message: "Danh sách cập nhật phải là một mảng và không được rỗng." });
+    }
+
+    // Kiểm tra những task nào có thay đổi status để ghi log & thông báo
+    const statusUpdates = updates.filter((u) => u.status);
+    let existingIssuesMap = new Map();
+    if (statusUpdates.length > 0) {
+      const existing = await prisma.issue.findMany({
+        where: { id: { in: statusUpdates.map((u) => u.id) } },
+        include: {
+          project: { select: { id: true, name: true, key: true } },
+          assignees: { include: { user: { select: { id: true, name: true, email: true } } } },
+          reporter: { select: { id: true, name: true, email: true } },
+        },
+      });
+      existing.forEach((iss) => existingIssuesMap.set(iss.id, iss));
     }
 
     // Thực hiện cập nhật trong transaction
@@ -479,12 +515,50 @@ export const reorderIssues = async (req, res) => {
         prisma.issue.update({
           where: { id: item.id },
           data: {
-            ...(item.status && { status: item.status }),
+            ...(item.status && {
+              status: item.status,
+              completedAt: item.status === "DONE" ? new Date() : null,
+            }),
             ...(item.order !== undefined && { order: item.order }),
           },
         })
       )
     );
+
+    // Ghi Activity log & Bắn thông báo cho các task đổi trạng thái
+    for (const item of statusUpdates) {
+      const existing = existingIssuesMap.get(item.id);
+      if (existing && existing.status !== item.status) {
+        prisma.activity.create({
+          data: {
+            projectId: existing.projectId,
+            issueId: existing.id,
+            actorId: req.user.id,
+            action: "changed_status",
+            metadata: {
+              title: existing.title,
+              from: existing.status,
+              to: item.status,
+            },
+          },
+        }).catch((e) => console.error("Lỗi ghi activity reorder:", e.message));
+
+        notifyStatusChange({
+          actorId: req.user.id,
+          actorName: req.user.name,
+          issue: { ...existing, status: item.status },
+          oldStatus: existing.status,
+          newStatus: item.status,
+          project: existing.project,
+        }).catch((e) => console.error("Lỗi notifyStatusChange reorder:", e.message));
+      }
+    }
+
+    // Phát sóng real-time cho các thành viên trong dự án
+    const targetProjectId = req.params.projectId || req.project?.id || existingIssuesMap.values().next().value?.projectId;
+    if (targetProjectId) {
+      emitToProject(targetProjectId, "issue:reordered", { updates, actorId: req.user.id }, clientSocketId);
+    }
 
     return res.status(200).json({
       message: "Cập nhật vị trí các công việc thành công!",

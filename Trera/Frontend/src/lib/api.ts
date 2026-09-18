@@ -12,7 +12,7 @@ export const api = axios.create({
 // Request Interceptor: Tự động gắn JWT token vào header
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("trera_token");
+    const token = sessionStorage.getItem("trera_token") || localStorage.getItem("trera_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -29,6 +29,8 @@ api.interceptors.response.use(
       // Bỏ qua nếu đang gọi login hoặc register
       const requestUrl = error.config?.url || "";
       if (!requestUrl.includes("/auth/login") && !requestUrl.includes("/auth/register")) {
+        sessionStorage.removeItem("trera_token");
+        sessionStorage.removeItem("trera_user");
         localStorage.removeItem("trera_token");
         localStorage.removeItem("trera_user");
         if (window.location.pathname !== "/login" && window.location.pathname !== "/") {

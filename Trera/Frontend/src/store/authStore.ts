@@ -27,14 +27,14 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: (() => {
     try {
-      const savedUser = localStorage.getItem("trera_user");
+      const savedUser = sessionStorage.getItem("trera_user") || localStorage.getItem("trera_user");
       return savedUser ? JSON.parse(savedUser) : null;
     } catch {
       return null;
     }
   })(),
-  token: localStorage.getItem("trera_token") || null,
-  isAuthenticated: !!localStorage.getItem("trera_token"),
+  token: sessionStorage.getItem("trera_token") || localStorage.getItem("trera_token") || null,
+  isAuthenticated: !!(sessionStorage.getItem("trera_token") || localStorage.getItem("trera_token")),
   isLoading: false,
 
   login: async (email, password) => {
@@ -43,6 +43,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const res = await api.post("/auth/login", { email, password });
       const { user, token, message } = res.data;
 
+      sessionStorage.setItem("trera_token", token);
+      sessionStorage.setItem("trera_user", JSON.stringify(user));
       localStorage.setItem("trera_token", token);
       localStorage.setItem("trera_user", JSON.stringify(user));
 
@@ -61,6 +63,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const res = await api.post("/auth/register", { name, email, password });
       const { user, token, message } = res.data;
 
+      sessionStorage.setItem("trera_token", token);
+      sessionStorage.setItem("trera_user", JSON.stringify(user));
       localStorage.setItem("trera_token", token);
       localStorage.setItem("trera_user", JSON.stringify(user));
 
@@ -74,13 +78,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: () => {
+    sessionStorage.removeItem("trera_token");
+    sessionStorage.removeItem("trera_user");
     localStorage.removeItem("trera_token");
     localStorage.removeItem("trera_user");
     set({ user: null, token: null, isAuthenticated: false });
   },
 
   checkAuth: async () => {
-    const token = localStorage.getItem("trera_token");
+    const token = sessionStorage.getItem("trera_token") || localStorage.getItem("trera_token");
     if (!token) {
       set({ isAuthenticated: false, user: null });
       return;
@@ -88,6 +94,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const res = await api.get("/auth/me");
       const user = res.data.user;
+      sessionStorage.setItem("trera_user", JSON.stringify(user));
       localStorage.setItem("trera_user", JSON.stringify(user));
       set({ user, isAuthenticated: true });
     } catch {
@@ -99,6 +106,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const res = await api.put("/auth/me", { name });
       const updatedUser = res.data.user;
+      sessionStorage.setItem("trera_user", JSON.stringify(updatedUser));
       localStorage.setItem("trera_user", JSON.stringify(updatedUser));
       set({ user: updatedUser });
       return { success: true, message: res.data.message };
@@ -119,6 +127,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   setAuthData: (user, token) => {
+    sessionStorage.setItem("trera_token", token);
+    sessionStorage.setItem("trera_user", JSON.stringify(user));
     localStorage.setItem("trera_token", token);
     localStorage.setItem("trera_user", JSON.stringify(user));
     set({

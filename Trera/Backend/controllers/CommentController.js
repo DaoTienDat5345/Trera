@@ -1,5 +1,7 @@
 import { prisma } from "../config/prisma.js";
 import { sendCommentNotificationEmail } from "../services/emailService.js";
+import { notifyComment } from "../services/notificationService.js";
+import { emitToProject } from "../config/socket.js";
 
 /**
  * Lấy danh sách bình luận của một công việc (Issue)
@@ -129,29 +131,17 @@ export const createComment = async (req, res) => {
       return newComment;
     });
 
-    // Gom danh sách người nhận email: assignees + reporter (loại bỏ người bình luận)
-    const recipientMap = new Map();
+    // Kích hoạt thông báo In-App + Email (Admin + Assignees + Reporter)
+    notifyComment({
+      actorId: req.user.id,
+      actorName: req.user.name,
+      comment,
+      issue,
+      project: issue.project,
+    }).catch((err) => console.error("Lỗi notifyComment:", err.message));
 
-    if (issue.reporter && issue.reporter.id !== req.user.id) {
-      recipientMap.set(issue.reporter.id, issue.reporter);
-    }
-
-    issue.assignees.forEach(({ user }) => {
-      if (user.id !== req.user.id) {
-        recipientMap.set(user.id, user);
-      }
-    });
-
-    const recipients = Array.from(recipientMap.values());
-    if (recipients.length > 0) {
-      sendCommentNotificationEmail({
-        users: recipients,
-        comment,
-        issue,
-        project: issue.project,
-        commenterName: req.user.name,
-      }).catch((err) => console.error("Lỗi gửi email thông báo bình luận:", err.message));
-    }
+    // Phát sóng real-time bình luận mới tới các thành viên trong dự án
+    emitToProject(issue.projectId, "comment:new", { issueId, comment });
 
     return res.status(201).json({
       message: "Đã thêm bình luận thành công!",

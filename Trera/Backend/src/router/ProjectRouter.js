@@ -8,6 +8,8 @@ import {
   addMember,
   removeMember,
 } from "../../controllers/ProjectController.js";
+import { getProjectAnalytics } from "../../controllers/AnalyticsController.js";
+import { getProjectActivities } from "../../controllers/ActivityController.js";
 import { protect } from "../../middleware/auth.js";
 import {
   checkProjectMember,
@@ -24,6 +26,8 @@ router.get("/", getAllProjects);
 router.post("/", createProject);
 
 router.get("/:id", checkProjectMember, getProjectById);
+router.get("/:id/analytics", checkProjectMember, getProjectAnalytics);
+router.get("/:id/activities", checkProjectMember, getProjectActivities);
 router.put("/:id", checkProjectMember, checkProjectAdmin, updateProject);
 router.delete("/:id", checkProjectMember, checkProjectOwner, deleteProject);
 

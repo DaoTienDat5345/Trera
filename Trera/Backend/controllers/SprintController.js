@@ -1,4 +1,5 @@
 import { prisma } from "../config/prisma.js";
+import { notifySprintStarted } from "../services/notificationService.js";
 
 /**
  * Lấy danh sách tất cả Sprint của dự án
@@ -229,6 +230,37 @@ export const startSprint = async (req, res) => {
 
       return s;
     });
+
+    // Thông báo cho toàn bộ thành viên trong dự án
+    (async () => {
+      try {
+        const [members, project] = await Promise.all([
+          prisma.projectMember.findMany({
+            where: { projectId },
+            select: { userId: true },
+          }),
+          prisma.project.findUnique({
+            where: { id: projectId },
+            select: { id: true, name: true, ownerId: true },
+          }),
+        ]);
+
+        const memberIds = members.map((m) => m.userId);
+        if (project && !memberIds.includes(project.ownerId)) {
+          memberIds.push(project.ownerId);
+        }
+
+        await notifySprintStarted({
+          actorId: req.user.id,
+          actorName: req.user.name,
+          sprint: startedSprint,
+          project: project || { id: projectId, name: "Dự án" },
+          memberIds,
+        });
+      } catch (err) {
+        console.error("Lỗi gửi thông báo startSprint:", err.message);
+      }
+    })();
 
     return res.status(200).json({
       message: `Sprint "${startedSprint.name}" đã bắt đầu!`,

@@ -1,6 +1,6 @@
-﻿import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router";
-import { LayoutGrid, List, Users, Plus, Play, CheckSquare, Trash2, Edit2, ChevronDown, ChevronRight, ArrowLeft, GitMerge, Circle, Clock, Eye, CheckCircle2, Bug, BookOpen, Zap, AlertCircle, ArrowUp, ArrowDown, Minus, Layers } from "lucide-react";
+import { LayoutGrid, List, Users, Plus, Play, CheckSquare, Trash2, Edit2, ChevronDown, ChevronRight, ArrowLeft, GitMerge, Circle, Clock, Eye, CheckCircle2, Bug, BookOpen, Zap, AlertCircle, ArrowUp, ArrowDown, Minus, Layers, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 
 import Navbar from "../components/layout/Navbar";
@@ -257,6 +257,12 @@ export default function SprintBacklogPage() {
               </button>
               <Link to={`/projects/${projectId}/members`} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
                 <Users size={14} /> Thành viên
+              </Link>
+              <Link to={`/projects/${projectId}/reports`} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
+                <BarChart3 size={14} /> Báo cáo
+              </Link>
+              <Link to={`/projects/${projectId}/activity`} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
+                <GitMerge size={14} /> Lịch sử
               </Link>
             </nav>
             <div className="ml-auto flex items-center gap-2">

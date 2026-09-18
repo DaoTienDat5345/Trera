@@ -7,22 +7,44 @@ import AuthPage from "./pages/AuthPage";
 import Notfound from "./pages/Notfound";
 import { ProtectedRoute, PublicRoute } from "./components/common/ProtectedRoute";
 import { useAuthStore } from "./store/authStore";
+import { useNotificationStore } from "./store/notificationStore";
+import { connectSocket, disconnectSocket } from "./lib/socket";
 
 import ProjectsPage from "./pages/ProjectsPage";
 import ProjectBoardPage from "./pages/ProjectBoardPage";
 import SprintBacklogPage from "./pages/SprintBacklogPage";
 import ProjectMembersPage from "./pages/ProjectMembersPage";
+import ProjectReportsPage from "./pages/ProjectReportsPage";
+import ProjectActivityPage from "./pages/ProjectActivityPage";
 import ProfilePage from "./pages/ProfilePage";
 import ProfileSettingsPage from "./pages/ProfileSettingsPage";
 import ProfilePasswordPage from "./pages/ProfilePasswordPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
 
 function App() {
-  const { checkAuth } = useAuthStore();
+  const { token, checkAuth } = useAuthStore();
+  const { addRealtimeNotification } = useNotificationStore();
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  useEffect(() => {
+    if (token) {
+      const socket = connectSocket(token);
+      const handleNewNotification = (data: any) => {
+        addRealtimeNotification(data);
+      };
+
+      socket.on("notification:new", handleNewNotification);
+
+      return () => {
+        socket.off("notification:new", handleNewNotification);
+      };
+    } else {
+      disconnectSocket();
+    }
+  }, [token, addRealtimeNotification]);
 
   return (
     <>
@@ -59,6 +81,8 @@ function App() {
             <Route path="/projects/:id" element={<ProjectBoardPage />} />
             <Route path="/projects/:id/sprints" element={<SprintBacklogPage />} />
             <Route path="/projects/:id/members" element={<ProjectMembersPage />} />
+            <Route path="/projects/:id/reports" element={<ProjectReportsPage />} />
+            <Route path="/projects/:id/activity" element={<ProjectActivityPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/profile/settings" element={<ProfileSettingsPage />} />
             <Route path="/profile/password" element={<ProfilePasswordPage />} />

@@ -1,13 +1,19 @@
+import http from "http";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import passport from "../config/passport.js";
+import { initSocket } from "../config/socket.js";
 
 import AuthRouter from "./router/AuthRouter.js";
 import ProjectRouter from "./router/ProjectRouter.js";
 import SprintRouter from "./router/SprintRouter.js";
+import path from "path";
 import singleIssueRouter, { projectIssuesRouter } from "./router/IssueRouter.js";
 import singleCommentRouter, { issueCommentsRouter } from "./router/CommentRouter.js";
+import singleChecklistRouter, { issueChecklistRouter } from "./router/ChecklistRouter.js";
+import singleAttachmentRouter, { issueAttachmentRouter } from "./router/AttachmentRouter.js";
+import NotificationRouter from "./router/NotificationRouter.js";
 
 dotenv.config();
 
@@ -20,6 +26,9 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(passport.initialize());
+
+// Phục vụ tệp tĩnh tải lên (Local fallback)
+app.use("/uploads", express.static(path.resolve("uploads")));
 
 // Health check
 app.get("/api/health", (req, res) => {
@@ -39,10 +48,24 @@ app.use("/api/projects/:projectId/issues", projectIssuesRouter);
 // Issue routes
 app.use("/api/issues", singleIssueRouter);
 
+// Checklist routes
+app.use("/api/issues/:issueId/checklist", issueChecklistRouter);
+app.use("/api/checklist", singleChecklistRouter);
+
+// Attachment routes
+app.use("/api/issues/:issueId/attachments", issueAttachmentRouter);
+app.use("/api/attachments", singleAttachmentRouter);
+
 // Comment routes
 app.use("/api/issues/:issueId/comments", issueCommentsRouter);
 app.use("/api/comments", singleCommentRouter);
 
-app.listen(port, () => {
+// Notification routes
+app.use("/api/notifications", NotificationRouter);
+
+const server = http.createServer(app);
+initSocket(server);
+
+server.listen(port, () => {
   console.log(`✅ Server đang chạy tại http://localhost:${port}`);
 });

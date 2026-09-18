@@ -4,6 +4,7 @@ import { Kanban, Plus, LogOut, FolderKanban, ChevronDown, Sparkles } from "lucid
 import { Button } from "../ui/button";
 import { useAuthStore } from "../../store/authStore";
 import UserAvatar from "../common/UserAvatar";
+import NotificationDropdown from "./NotificationDropdown";
 
 interface NavbarProps {
   onOpenCreateProject?: () => void;
@@ -69,6 +70,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCreateProject }) => {
               <span className="hidden sm:inline">Tạo dự án</span>
             </Button>
           )}
+
+          {/* In-App Notification Center */}
+          <NotificationDropdown />
 
           {/* User Profile Dropdown */}
           <div className="relative" ref={dropdownRef}>

@@ -1,6 +1,6 @@
-﻿import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router";
-import { LayoutGrid, List, Users, Plus, Trash2, Crown, ArrowLeft, Mail, Shield, User2, X } from "lucide-react";
+import { LayoutGrid, List, Users, Plus, Trash2, Crown, ArrowLeft, Mail, Shield, User2, X, BarChart3, GitMerge } from "lucide-react";
 import { toast } from "sonner";
 
 import Navbar from "../components/layout/Navbar";
@@ -102,6 +102,12 @@ export default function ProjectMembersPage() {
               <button className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] bg-indigo-50 text-indigo-700 rounded-lg font-medium">
                 <Users size={14} /> Thành viên
               </button>
+              <Link to={`/projects/${projectId}/reports`} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
+                <BarChart3 size={14} /> Báo cáo
+              </Link>
+              <Link to={`/projects/${projectId}/activity`} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
+                <GitMerge size={14} /> Lịch sử
+              </Link>
             </nav>
             {canManage && (
               <button
