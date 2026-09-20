@@ -20,6 +20,8 @@ import ProfilePage from "./pages/ProfilePage";
 import ProfileSettingsPage from "./pages/ProfileSettingsPage";
 import ProfilePasswordPage from "./pages/ProfilePasswordPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
+import InvitationResponsePage from "./pages/InvitationResponsePage";
+import TestRepositoryPage from "./pages/TestRepositoryPage";
 
 function App() {
   const { token, checkAuth } = useAuthStore();
@@ -75,11 +77,15 @@ function App() {
           {/* OAuth Callback */}
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
+          {/* Invitation Response - public, no auth required */}
+          <Route path="/invitations/:token" element={<InvitationResponsePage />} />
+
           {/* Các route yêu cầu đăng nhập */}
           <Route element={<ProtectedRoute />}>
             <Route path="/projects" element={<ProjectsPage />} />
             <Route path="/projects/:id" element={<ProjectBoardPage />} />
             <Route path="/projects/:id/sprints" element={<SprintBacklogPage />} />
+            <Route path="/projects/:id/repository" element={<TestRepositoryPage />} />
             <Route path="/projects/:id/members" element={<ProjectMembersPage />} />
             <Route path="/projects/:id/reports" element={<ProjectReportsPage />} />
             <Route path="/projects/:id/activity" element={<ProjectActivityPage />} />

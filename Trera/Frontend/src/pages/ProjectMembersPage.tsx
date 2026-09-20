@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router";
-import { LayoutGrid, List, Users, Plus, Trash2, Crown, ArrowLeft, Mail, Shield, User2, X, BarChart3, GitMerge } from "lucide-react";
+import { LayoutGrid, List, Users, Plus, Trash2, Crown, ArrowLeft, Mail, Shield, User2, X, BarChart3, GitMerge, Clock, Send, XCircle, FlaskConical } from "lucide-react";
 import { toast } from "sonner";
 
 import Navbar from "../components/layout/Navbar";
@@ -9,6 +9,16 @@ import { useProjectStore } from "../store/projectStore";
 import type { ProjectMember } from "../store/projectStore";
 import { useAuthStore } from "../store/authStore";
 import { api } from "../lib/api";
+
+interface PendingInvitation {
+  id: string;
+  token: string;
+  status: string;
+  role: string;
+  expiresAt: string;
+  invitedUser: { id: string; name: string; email: string; avatar?: string };
+  invitedBy: { id: string; name: string };
+}
 
 export default function ProjectMembersPage() {
   const { id: projectId } = useParams<{ id: string }>();
@@ -20,6 +30,7 @@ export default function ProjectMembersPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"ADMIN" | "MEMBER">("MEMBER");
   const [isInviting, setIsInviting] = useState(false);
+  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
 
   const load = useCallback(async () => {
     if (!projectId) return;
@@ -28,11 +39,25 @@ export default function ProjectMembersPage() {
     setIsLoading(false);
   }, [projectId]);
 
+  const loadInvitations = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const res = await api.get(`/projects/${projectId}/invitations`);
+      setPendingInvitations(res.data.invitations.filter((inv: PendingInvitation) => inv.status === "PENDING"));
+    } catch {
+      // ignore if not admin
+    }
+  }, [projectId]);
+
   useEffect(() => { load(); }, [load]);
 
   const isOwner = currentProject?.ownerId === user?.id;
   const myRole = currentProject?.members?.find((m) => m.user.id === user?.id)?.role;
   const canManage = isOwner || myRole === "ADMIN";
+
+  useEffect(() => {
+    if (canManage) loadInvitations();
+  }, [canManage, loadInvitations]);
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,12 +65,12 @@ export default function ProjectMembersPage() {
     setIsInviting(true);
     try {
       await api.post(`/projects/${projectId}/members`, { email: inviteEmail.trim(), role: inviteRole });
-      toast.success(`Đã mời ${inviteEmail}`);
+      toast.success(`Đã gửi lời mời xác nhận tới ${inviteEmail}. Họ sẽ nhận được email để chấp nhận/từ chối.`);
       setInviteEmail("");
       setShowInviteModal(false);
-      await load();
+      await loadInvitations();
     } catch (err: any) {
-      toast.error(err.response?.data?.message ?? "Mời thành viên thất bại");
+      toast.error(err.response?.data?.message ?? "Gửi lời mời thất bại");
     } finally {
       setIsInviting(false);
     }
@@ -60,6 +85,18 @@ export default function ProjectMembersPage() {
       await load();
     } catch (err: any) {
       toast.error(err.response?.data?.message ?? "Xoá thành viên thất bại");
+    }
+  };
+
+  const handleCancelInvitation = async (invitationId: string, userName: string) => {
+    if (!projectId) return;
+    if (!confirm(`Hủy lời mời đã gửi cho "${userName}"?`)) return;
+    try {
+      await api.delete(`/projects/${projectId}/invitations/${invitationId}`);
+      toast.success(`Đã hủy lời mời cho ${userName}`);
+      await loadInvitations();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message ?? "Hủy lời mời thất bại");
     }
   };
 
@@ -98,6 +135,9 @@ export default function ProjectMembersPage() {
               </Link>
               <Link to={`/projects/${projectId}/sprints`} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
                 <List size={14} /> Backlog
+              </Link>
+              <Link to={`/projects/${projectId}/repository`} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
+                <FlaskConical size={14} /> Kho Test Case
               </Link>
               <button className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] bg-indigo-50 text-indigo-700 rounded-lg font-medium">
                 <Users size={14} /> Thành viên
@@ -190,6 +230,46 @@ export default function ProjectMembersPage() {
             )}
           </div>
 
+          {/* Pending Invitations */}
+          {canManage && pendingInvitations.length > 0 && (
+            <div className="mt-4 bg-white rounded-2xl border border-amber-200 overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-amber-100 flex items-center gap-2 bg-amber-50">
+                <Clock size={15} className="text-amber-500" />
+                <span className="text-[13px] font-semibold text-amber-700">{pendingInvitations.length} lời mời đang chờ xác nhận</span>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {pendingInvitations.map((inv) => (
+                  <div key={inv.id} className="flex items-center gap-4 px-5 py-3.5 group">
+                    <UserAvatar name={inv.invitedUser.name} size="md" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[14px] font-semibold text-slate-800 truncate">{inv.invitedUser.name}</span>
+                        <span className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${inv.role === "ADMIN" ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-600"}`}>
+                          {inv.role === "ADMIN" ? <><Shield size={9} /> Admin</> : <><User2 size={9} /> Thành viên</>}
+                        </span>
+                        <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">
+                          <Clock size={9} /> Đang chờ
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-0.5 text-[12px] text-slate-400">
+                        <span className="flex items-center gap-1"><Mail size={11} /> {inv.invitedUser.email}</span>
+                        <span className="flex items-center gap-1"><Send size={11} /> Mời bởi {inv.invitedBy.name}</span>
+                        <span>Hết hạn: {new Date(inv.expiresAt).toLocaleDateString("vi-VN")}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleCancelInvitation(inv.id, inv.invitedUser.name)}
+                      className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                      title="Hủy lời mời"
+                    >
+                      <XCircle size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Project info card */}
           <div className="mt-4 bg-white rounded-2xl border border-slate-200 px-5 py-4">
             <h3 className="text-[13px] font-semibold text-slate-600 mb-3">Thông tin dự án</h3>
@@ -224,7 +304,7 @@ export default function ProjectMembersPage() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
               <div className="flex items-center gap-2">
                 <Users size={16} className="text-indigo-600" />
-                <span className="font-semibold text-slate-800">Mời thành viên</span>
+                <span className="font-semibold text-slate-800">Gửi lời mời tham gia</span>
               </div>
               <button onClick={() => setShowInviteModal(false)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
                 <X size={16} />

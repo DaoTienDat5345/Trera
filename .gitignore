@@ -39,5 +39,7 @@ logs/
 Thumbs.db
 .agent/
 
-# Uploads
+# Uploads & Temporary files
 uploads/
+scratch/
+

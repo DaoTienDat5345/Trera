@@ -22,15 +22,18 @@ model User {
   avatar    String?            // URL ảnh từ Google
 
   // Relations
-  ownedProjects    Project[]       @relation("ProjectOwner")
-  projectMembers   ProjectMember[]
-  reportedIssues   Issue[]         @relation("IssueReporter")
-  assignedIssues   IssueAssignee[]
-  comments         Comment[]
-  activities       Activity[]
-  notifications    Notification[]  @relation("UserNotifications")
-  actedNotifs      Notification[]  @relation("NotificationActor")
-  attachments      Attachment[]
+  ownedProjects        Project[]            @relation("ProjectOwner")
+  projectMembers       ProjectMember[]
+  reportedIssues       Issue[]              @relation("IssueReporter")
+  assignedIssues       IssueAssignee[]
+  comments             Comment[]
+  activities           Activity[]
+  notifications        Notification[]       @relation("UserNotifications")
+  actedNotifs          Notification[]       @relation("NotificationActor")
+  attachments          Attachment[]
+  sentInvitations      ProjectInvitation[]  @relation("InvitedBy")
+  receivedInvitations  ProjectInvitation[]  @relation("InvitedUser")
+  authoredTestCases    TestCase[]           @relation("TestCaseAuthor")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -48,12 +51,16 @@ model Project {
   key         String  @unique // e.g. "TRE" – prefix cho issue
 
   // Relations
-  owner     User            @relation("ProjectOwner", fields: [ownerId], references: [id])
-  ownerId   String
-  members   ProjectMember[]
-  sprints   Sprint[]
-  issues    Issue[]
-  activities Activity[]
+  owner       User                @relation("ProjectOwner", fields: [ownerId], references: [id])
+  ownerId     String
+  members     ProjectMember[]
+  sprints     Sprint[]
+  issues      Issue[]
+  activities  Activity[]
+  invitations ProjectInvitation[]
+  testFolders TestFolder[]
+  testCases   TestCase[]
+  testSharedSteps TestSharedStep[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -332,4 +339,155 @@ model Attachment {
   @@index([issueId])
   @@index([checklistItemId])
   @@map("attachments")
+}
+
+// ─────────────────────────────────────────────
+// PROJECT INVITATION (Lời mời tham gia dự án)
+// ─────────────────────────────────────────────
+model ProjectInvitation {
+  id      String           @id @default(cuid())
+  token   String           @unique @default(cuid())
+  status  InvitationStatus @default(PENDING)
+  role    ProjectMemberRole @default(MEMBER)
+
+  expiresAt DateTime
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  invitedUser   User   @relation("InvitedUser", fields: [invitedUserId], references: [id], onDelete: Cascade)
+  invitedUserId String
+
+  invitedBy   User   @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+  invitedById String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([token])
+  @@index([invitedUserId])
+  @@index([projectId])
+  @@map("project_invitations")
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+// ─────────────────────────────────────────────
+// TEST MANAGEMENT: FOLDERS & TEST CASES (Phase 1)
+// ─────────────────────────────────────────────
+
+model TestFolder {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  order       Int          @default(0)
+
+  projectId   String
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  parentId    String?
+  parent      TestFolder?  @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  subFolders  TestFolder[] @relation("FolderHierarchy")
+
+  testCases   TestCase[]
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([projectId, parentId])
+  @@map("test_folders")
+}
+
+enum TestCaseType {
+  MANUAL
+  BDD
+}
+
+enum TestPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model TestCase {
+  id             String          @id @default(cuid())
+  key            String          // Ví dụ: TRE-TC-1
+  title          String
+  description    String?
+  type           TestCaseType    @default(MANUAL)
+  priority       TestPriority    @default(MEDIUM)
+  preconditions  String?
+  gherkinContent String?         // Kịch bản BDD Given-When-Then
+  order          Int             @default(0)
+
+  projectId      String
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  folderId       String?
+  folder         TestFolder?     @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  authorId       String
+  author         User            @relation("TestCaseAuthor", fields: [authorId], references: [id])
+
+  steps          TestStep[]
+  sharedStepLinks TestCaseSharedStep[]
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@unique([projectId, key])
+  @@index([projectId, folderId])
+  @@map("test_cases")
+}
+
+model TestStep {
+  id             String    @id @default(cuid())
+  order          Int       @default(0)
+  action         String    // Hành động kiểm thử
+  testData       String?   // Dữ liệu kiểm thử
+  expectedResult String    // Kết quả mong đợi
+
+  testCaseId     String
+  testCase       TestCase  @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([testCaseId, order])
+  @@map("test_steps")
+}
+
+model TestSharedStep {
+  id             String               @id @default(cuid())
+  title          String               // Ví dụ: "Đăng nhập quyền Admin"
+  action         String
+  testData       String?
+  expectedResult String
+
+  projectId      String
+  project        Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  testCases      TestCaseSharedStep[]
+
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@map("test_shared_steps")
+}
+
+model TestCaseSharedStep {
+  testCaseId   String
+  testCase     TestCase       @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  sharedStepId String
+  sharedStep   TestSharedStep @relation(fields: [sharedStepId], references: [id], onDelete: Cascade)
+  order        Int            @default(0)
+
+  @@id([testCaseId, sharedStepId])
+  @@map("test_case_shared_steps")
 }

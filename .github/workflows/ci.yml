@@ -1,0 +1,83 @@
+name: Trera CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch: # Cho phép nhấn nút chạy thủ công trên GitHub Actions khi cần
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # -------------------------------------------------------------
+  # Job 1: Kiểm tra & Build Frontend (React + Vite + TypeScript)
+  # -------------------------------------------------------------
+  frontend-check:
+    name: Frontend (Lint & Build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Trera/Frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: Trera/Frontend/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Build Frontend
+        run: npm run build
+
+  # -------------------------------------------------------------
+  # Job 2: Kiểm tra Backend (Prisma & Vitest Tests)
+  # -------------------------------------------------------------
+  backend-check:
+    name: Backend (Prisma & Unit Tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Trera/Backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: Trera/Backend/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/trera?schema=public"
+
+      - name: Run Vitest Tests
+        run: npm run test
+        env:
+          NODE_ENV: test
+          JWT_SECRET: "ci-secret-jwt-key-sample-12345678"
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/trera?schema=public"

@@ -5,9 +5,13 @@ import {
   getProjectById,
   updateProject,
   deleteProject,
-  addMember,
   removeMember,
 } from "../../controllers/ProjectController.js";
+import {
+  sendInvitation,
+  getProjectInvitations,
+  cancelInvitation,
+} from "../../controllers/InvitationController.js";
 import { getProjectAnalytics } from "../../controllers/AnalyticsController.js";
 import { getProjectActivities } from "../../controllers/ActivityController.js";
 import { protect } from "../../middleware/auth.js";
@@ -32,7 +36,11 @@ router.put("/:id", checkProjectMember, checkProjectAdmin, updateProject);
 router.delete("/:id", checkProjectMember, checkProjectOwner, deleteProject);
 
 // Quản lý thành viên trong dự án
-router.post("/:id/members", checkProjectMember, checkProjectAdmin, addMember);
+router.post("/:id/members", checkProjectMember, checkProjectAdmin, sendInvitation);
 router.delete("/:id/members/:userId", checkProjectMember, removeMember);
+
+// Quản lý lời mời
+router.get("/:id/invitations", checkProjectMember, checkProjectAdmin, getProjectInvitations);
+router.delete("/:id/invitations/:invitationId", checkProjectMember, checkProjectAdmin, cancelInvitation);
 
 export default router;

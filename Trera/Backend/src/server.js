@@ -14,6 +14,10 @@ import singleCommentRouter, { issueCommentsRouter } from "./router/CommentRouter
 import singleChecklistRouter, { issueChecklistRouter } from "./router/ChecklistRouter.js";
 import singleAttachmentRouter, { issueAttachmentRouter } from "./router/AttachmentRouter.js";
 import NotificationRouter from "./router/NotificationRouter.js";
+import InvitationRouter from "./router/InvitationRouter.js";
+import TestFolderRouter from "./router/TestFolderRouter.js";
+import TestCaseRouter from "./router/TestCaseRouter.js";
+import TestSharedStepRouter from "./router/TestSharedStepRouter.js";
 
 dotenv.config();
 
@@ -45,6 +49,11 @@ app.use("/api/projects", ProjectRouter);
 app.use("/api/projects/:projectId/sprints", SprintRouter);
 app.use("/api/projects/:projectId/issues", projectIssuesRouter);
 
+// Test Management routes (Phase 1: Test Repository)
+app.use("/api/projects/:projectId/test-folders", TestFolderRouter);
+app.use("/api/projects/:projectId/test-cases", TestCaseRouter);
+app.use("/api/projects/:projectId/test-shared-steps", TestSharedStepRouter);
+
 // Issue routes
 app.use("/api/issues", singleIssueRouter);
 
@@ -62,6 +71,9 @@ app.use("/api/comments", singleCommentRouter);
 
 // Notification routes
 app.use("/api/notifications", NotificationRouter);
+
+// Invitation routes (public - no auth needed)
+app.use("/api/invitations", InvitationRouter);
 
 const server = http.createServer(app);
 initSocket(server);

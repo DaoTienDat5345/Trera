@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router";
-import { LayoutGrid, List, Users, Plus, Play, CheckSquare, Trash2, Edit2, ChevronDown, ChevronRight, ArrowLeft, GitMerge, Circle, Clock, Eye, CheckCircle2, Bug, BookOpen, Zap, AlertCircle, ArrowUp, ArrowDown, Minus, Layers, BarChart3 } from "lucide-react";
+import { LayoutGrid, List, Users, Plus, Play, CheckSquare, Trash2, Edit2, ChevronDown, ChevronRight, ArrowLeft, GitMerge, Circle, Clock, Eye, CheckCircle2, Bug, BookOpen, Zap, AlertCircle, ArrowUp, ArrowDown, Minus, Layers, BarChart3, FlaskConical } from "lucide-react";
 import { toast } from "sonner";
 
 import Navbar from "../components/layout/Navbar";
@@ -255,6 +255,9 @@ export default function SprintBacklogPage() {
               <button className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] bg-indigo-50 text-indigo-700 rounded-lg font-medium">
                 <List size={14} /> Backlog
               </button>
+              <Link to={`/projects/${projectId}/repository`} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
+                <FlaskConical size={14} /> Kho Test Case
+              </Link>
               <Link to={`/projects/${projectId}/members`} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
                 <Users size={14} /> Thành viên
               </Link>

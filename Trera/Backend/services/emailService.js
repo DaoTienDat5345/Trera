@@ -244,3 +244,115 @@ export const sendCommentNotificationEmail = async ({ users, comment, issue, proj
 
 
 
+/**
+ * Gửi email mời xác nhận tham gia dự án (có nút Chấp nhận / Từ chối)
+ */
+export const sendInvitationRequestEmail = async ({
+  invitedUser,
+  project,
+  inviterName,
+  token,
+  role,
+  frontendUrl,
+}) => {
+  const roleText = role === "ADMIN" ? "Quản trị viên (Admin)" : "Thành viên (Member)";
+  const acceptUrl = `${frontendUrl}/invitations/${token}?action=accept`;
+  const declineUrl = `${frontendUrl}/invitations/${token}?action=decline`;
+
+  const subject = `📬 Lời mời tham gia dự án "${project.name}" trên Trera`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e1e4e8; border-radius: 8px;">
+      <h2 style="color: #2563eb; margin-top: 0;">Bạn nhận được lời mời tham gia dự án</h2>
+      <p>Xin chào <strong>${invitedUser.name}</strong>,</p>
+      <p><strong>${inviterName}</strong> đã mời bạn tham gia dự án <strong>${project.name}</strong> (${project.key}) với vai trò: <strong>${roleText}</strong>.</p>
+      ${project.description ? `<p style="background: #f8fafc; padding: 10px; border-left: 4px solid #2563eb; font-style: italic;">"${project.description}"</p>` : ""}
+      <p style="color: #64748b; font-size: 14px;">⏳ Lời mời này sẽ hết hạn sau <strong>7 ngày</strong>. Vui lòng phản hồi sớm.</p>
+      <div style="margin: 30px 0; display: flex; gap: 12px;">
+        <a href="${acceptUrl}"
+           style="background-color: #16a34a; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; margin-right: 12px;">
+          ✅ Chấp nhận lời mời
+        </a>
+        <a href="${declineUrl}"
+           style="background-color: #dc2626; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+          ❌ Từ chối
+        </a>
+      </div>
+      <p style="font-size: 13px; color: #64748b;">Hoặc truy cập trang phản hồi: <a href="${frontendUrl}/invitations/${token}">${frontendUrl}/invitations/${token}</a></p>
+      <hr style="border: none; border-top: 1px solid #e1e4e8; margin: 20px 0;" />
+      <p style="font-size: 12px; color: #6b7280;">Nếu bạn không nhận ra yêu cầu này, hãy bỏ qua email này.</p>
+    </div>
+  `;
+
+  return sendEmail({
+    to: invitedUser.email,
+    subject,
+    html,
+    text: `Xin chào ${invitedUser.name},\n${inviterName} mời bạn vào dự án ${project.name} với vai trò ${roleText}.\nChấp nhận: ${acceptUrl}\nTừ chối: ${declineUrl}`,
+  });
+};
+
+/**
+ * Gửi email kết quả lời mời tham gia dự án (tới cả owner và người được mời)
+ */
+export const sendInvitationResultEmail = async ({
+  owner,
+  invitedUser,
+  project,
+  accepted,
+}) => {
+  const resultText = accepted ? "chấp nhận ✅" : "từ chối ❌";
+  const resultColor = accepted ? "#16a34a" : "#dc2626";
+
+  // Email gửi cho owner
+  const ownerSubject = `📌 ${invitedUser.name} đã ${resultText} lời mời vào dự án "${project.name}"`;
+  const ownerHtml = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e1e4e8; border-radius: 8px;">
+      <h2 style="color: #2563eb; margin-top: 0;">Cập nhật lời mời dự án</h2>
+      <p>Xin chào <strong>${owner.name}</strong>,</p>
+      <p>Thành viên <strong>${invitedUser.name}</strong> (${invitedUser.email}) đã <strong style="color: ${resultColor};">${resultText}</strong> lời mời tham gia dự án <strong>${project.name}</strong>.</p>
+      ${accepted
+        ? `<p style="color: #16a34a;">🎉 Họ đã được thêm vào dự án và có thể bắt đầu cộng tác ngay!</p>
+           <div style="margin: 25px 0;">
+             <a href="${process.env.CLIENT_URL || "http://localhost:5173"}/projects/${project.id}/members"
+                style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+               Xem danh sách thành viên
+             </a>
+           </div>`
+        : `<p style="color: #64748b;">Bạn có thể gửi lại lời mời bất cứ lúc nào từ trang quản lý thành viên.</p>`
+      }
+      <hr style="border: none; border-top: 1px solid #e1e4e8; margin: 20px 0;" />
+      <p style="font-size: 12px; color: #6b7280;">Email thông báo tự động từ hệ thống Trera.</p>
+    </div>
+  `;
+
+  // Email gửi cho người được mời
+  const inviteeSubject = accepted
+    ? `🎉 Bạn đã tham gia dự án "${project.name}" thành công!`
+    : `❌ Bạn đã từ chối lời mời vào dự án "${project.name}"`;
+  const inviteeHtml = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e1e4e8; border-radius: 8px;">
+      <h2 style="color: ${resultColor}; margin-top: 0;">${accepted ? "Chào mừng bạn đến với dự án!" : "Đã từ chối lời mời"}</h2>
+      <p>Xin chào <strong>${invitedUser.name}</strong>,</p>
+      ${accepted
+        ? `<p>Bạn đã <strong style="color: #16a34a;">chấp nhận</strong> lời mời tham gia dự án <strong>${project.name}</strong>. Hãy đăng nhập để bắt đầu cộng tác!</p>
+           <div style="margin: 25px 0;">
+             <a href="${process.env.CLIENT_URL || "http://localhost:5173"}/projects/${project.id}"
+                style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+               Vào dự án ngay
+             </a>
+           </div>`
+        : `<p>Bạn đã <strong style="color: #dc2626;">từ chối</strong> lời mời tham gia dự án <strong>${project.name}</strong>. Lời mời đã được đóng lại.</p>
+           <p style="color: #64748b;">Nếu bạn muốn tham gia sau, hãy liên hệ người quản lý dự án.</p>`
+      }
+      <hr style="border: none; border-top: 1px solid #e1e4e8; margin: 20px 0;" />
+      <p style="font-size: 12px; color: #6b7280;">Email thông báo tự động từ hệ thống Trera.</p>
+    </div>
+  `;
+
+  // Gửi đồng thời cho cả hai
+  await Promise.allSettled([
+    sendEmail({ to: owner.email, subject: ownerSubject, html: ownerHtml, text: ownerSubject }),
+    sendEmail({ to: invitedUser.email, subject: inviteeSubject, html: inviteeHtml, text: inviteeSubject }),
+  ]);
+};
+
