@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import type { ReactNode } from "react";
 import { useParams, Link } from "react-router";
 import { LayoutGrid, List, Users, Plus, Play, CheckSquare, Trash2, Edit2, ChevronDown, ChevronRight, ArrowLeft, GitMerge, Circle, Clock, Eye, CheckCircle2, Bug, BookOpen, Zap, AlertCircle, ArrowUp, ArrowDown, Minus, Layers, BarChart3, FlaskConical } from "lucide-react";
 import { toast } from "sonner";
@@ -13,8 +14,9 @@ import type { Sprint } from "../store/sprintStore";
 import { useIssueStore } from "../store/issueStore";
 import type { Issue, IssueStatus } from "../store/issueStore";
 
+// ---- helpers ----
 const STATUS_STYLE: Record<IssueStatus, string> = {
-  TODO: "bg-slate-100 text-slate-500",
+  TODO: "bg-slate-100 text-slate-600",
   IN_PROGRESS: "bg-indigo-100 text-indigo-700",
   IN_REVIEW: "bg-amber-100 text-amber-700",
   DONE: "bg-emerald-100 text-emerald-700",
@@ -22,19 +24,19 @@ const STATUS_STYLE: Record<IssueStatus, string> = {
 const STATUS_LABEL: Record<IssueStatus, string> = {
   TODO: "Cần làm", IN_PROGRESS: "Đang làm", IN_REVIEW: "Đang review", DONE: "Hoàn thành",
 };
-const STATUS_ICON: Record<IssueStatus, JSX.Element> = {
+const STATUS_ICON: Record<IssueStatus, ReactNode> = {
   TODO: <Circle size={13} className="text-slate-400" />,
   IN_PROGRESS: <Clock size={13} className="text-indigo-500" />,
   IN_REVIEW: <Eye size={13} className="text-amber-500" />,
   DONE: <CheckCircle2 size={13} className="text-emerald-500" />,
 };
-const PRIORITY_ICON: Record<string, JSX.Element> = {
+const PRIORITY_ICON: Record<string, ReactNode> = {
   CRITICAL: <AlertCircle size={12} className="text-red-500" />,
   HIGH: <ArrowUp size={12} className="text-orange-500" />,
   MEDIUM: <Minus size={12} className="text-yellow-500" />,
   LOW: <ArrowDown size={12} className="text-sky-400" />,
 };
-const TYPE_ICON: Record<string, JSX.Element> = {
+const TYPE_ICON: Record<string, ReactNode> = {
   TASK: <CheckCircle2 size={12} className="text-indigo-400" />,
   BUG: <Bug size={12} className="text-red-400" />,
   STORY: <BookOpen size={12} className="text-emerald-400" />,

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import type { ReactNode } from "react";
 import { X, Edit2, Trash2, Send, Clock, AlertCircle, ArrowUp, ArrowDown, Minus, Bug, BookOpen, Zap, CheckCircle2, Layers, CalendarDays, User2, Tag, GitMerge, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import type { Issue, IssueStatus, IssuePriority, IssueType, Comment, Attachment } from "../../store/issueStore";
@@ -38,13 +39,13 @@ const STATUS_STYLE: Record<IssueStatus, string> = {
   IN_REVIEW: "bg-amber-100 text-amber-700",
   DONE: "bg-emerald-100 text-emerald-700",
 };
-const PRIORITY_ICON: Record<IssuePriority, JSX.Element> = {
+const PRIORITY_ICON: Record<IssuePriority, ReactNode> = {
   CRITICAL: <AlertCircle size={14} className="text-red-500" />,
   HIGH: <ArrowUp size={14} className="text-orange-500" />,
   MEDIUM: <Minus size={14} className="text-yellow-500" />,
   LOW: <ArrowDown size={14} className="text-sky-400" />,
 };
-const TYPE_ICON: Record<IssueType, JSX.Element> = {
+const TYPE_ICON: Record<IssueType, ReactNode> = {
   TASK: <CheckCircle2 size={14} className="text-indigo-500" />,
   BUG: <Bug size={14} className="text-red-500" />,
   STORY: <BookOpen size={14} className="text-emerald-500" />,

@@ -1,6 +1,6 @@
 import React from "react";
 import { Badge } from "./ui/badge";
-import { FilterType } from "@/lib/Data";
+import { FilterType } from "@/lib/data";
 import { Filter } from "lucide-react";
 import { Button } from "./ui/button";
 
