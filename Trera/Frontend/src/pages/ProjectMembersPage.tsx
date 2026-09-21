@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router";
-import { LayoutGrid, List, Users, Plus, Trash2, Crown, ArrowLeft, Mail, Shield, User2, X, BarChart3, GitMerge, Clock, Send, XCircle, FlaskConical } from "lucide-react";
+import { LayoutGrid, List, Users, Plus, Trash2, Crown, ArrowLeft, Mail, Shield, User2, X, BarChart3, GitMerge, Clock, Send, XCircle, FlaskConical, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 
 import Navbar from "../components/layout/Navbar";
@@ -138,6 +138,9 @@ export default function ProjectMembersPage() {
               </Link>
               <Link to={`/projects/${projectId}/repository`} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
                 <FlaskConical size={14} /> Kho Test Case
+              </Link>
+              <Link to={`/projects/${projectId}/test-plans`} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
+                <ClipboardList size={14} /> Kế hoạch Test
               </Link>
               <button className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] bg-indigo-50 text-indigo-700 rounded-lg font-medium">
                 <Users size={14} /> Thành viên

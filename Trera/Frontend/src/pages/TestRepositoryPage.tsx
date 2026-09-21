@@ -8,6 +8,7 @@ import {
   GitMerge,
   ArrowLeft,
   FlaskConical,
+  ClipboardList,
 } from "lucide-react";
 import Navbar from "../components/layout/Navbar";
 import { useProjectStore } from "../store/projectStore";
@@ -111,6 +112,12 @@ export default function TestRepositoryPage() {
             <button className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] bg-indigo-50 text-indigo-700 rounded-lg font-semibold">
               <FlaskConical size={14} /> Kho Test Case
             </button>
+            <Link
+              to={`/projects/${projectId}/test-plans`}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"
+            >
+              <ClipboardList size={14} /> Kế hoạch Test
+            </Link>
             <Link
               to={`/projects/${projectId}/members`}
               className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"

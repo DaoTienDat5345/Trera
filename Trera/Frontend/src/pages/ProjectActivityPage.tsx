@@ -17,6 +17,8 @@ import {
   FolderGit2,
   Layers,
   ChevronDown,
+  FlaskConical,
+  ClipboardList,
 } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "../components/layout/Navbar";
@@ -305,6 +307,18 @@ export const ProjectActivityPage: React.FC = () => {
                 className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
               >
                 <List size={14} /> Backlog
+              </Link>
+              <Link
+                to={`/projects/${projectId}/repository`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+              >
+                <FlaskConical size={14} /> Kho Test Case
+              </Link>
+              <Link
+                to={`/projects/${projectId}/test-plans`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+              >
+                <ClipboardList size={14} /> Kế hoạch Test
               </Link>
               <Link
                 to={`/projects/${projectId}/members`}

@@ -18,6 +18,10 @@ import InvitationRouter from "./router/InvitationRouter.js";
 import TestFolderRouter from "./router/TestFolderRouter.js";
 import TestCaseRouter from "./router/TestCaseRouter.js";
 import TestSharedStepRouter from "./router/TestSharedStepRouter.js";
+import TestSetRouter from "./router/TestSetRouter.js";
+import TestPlanRouter from "./router/TestPlanRouter.js";
+import TestEnvironmentRouter from "./router/TestEnvironmentRouter.js";
+import TestRunRouter from "./router/TestRunRouter.js";
 
 dotenv.config();
 
@@ -49,10 +53,14 @@ app.use("/api/projects", ProjectRouter);
 app.use("/api/projects/:projectId/sprints", SprintRouter);
 app.use("/api/projects/:projectId/issues", projectIssuesRouter);
 
-// Test Management routes (Phase 1: Test Repository)
+// Test Management routes (Phase 1 & Phase 2)
 app.use("/api/projects/:projectId/test-folders", TestFolderRouter);
 app.use("/api/projects/:projectId/test-cases", TestCaseRouter);
 app.use("/api/projects/:projectId/test-shared-steps", TestSharedStepRouter);
+app.use("/api/projects/:projectId/test-sets", TestSetRouter);
+app.use("/api/projects/:projectId/test-plans", TestPlanRouter);
+app.use("/api/projects/:projectId/test-environments", TestEnvironmentRouter);
+app.use("/api/projects/:projectId/test-runs", TestRunRouter);
 
 // Issue routes
 app.use("/api/issues", singleIssueRouter);

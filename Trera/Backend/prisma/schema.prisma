@@ -34,6 +34,8 @@ model User {
   sentInvitations      ProjectInvitation[]  @relation("InvitedBy")
   receivedInvitations  ProjectInvitation[]  @relation("InvitedUser")
   authoredTestCases    TestCase[]           @relation("TestCaseAuthor")
+  assignedTestRuns     TestRun[]            @relation("TestRunAssignee")
+  executedRunResults   TestRunResult[]      @relation("TestRunResultExecutor")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -61,6 +63,10 @@ model Project {
   testFolders TestFolder[]
   testCases   TestCase[]
   testSharedSteps TestSharedStep[]
+  testSets    TestSet[]
+  testPlans   TestPlan[]
+  testEnvironments TestEnvironment[]
+  testRuns    TestRun[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -107,6 +113,7 @@ model Sprint {
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId String
   issues    Issue[]
+  testPlans TestPlan[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -151,6 +158,8 @@ model Issue {
   activities     Activity[]
   checklistItems ChecklistItem[]
   attachments    Attachment[]
+  defectsFromTestRuns TestRunDefect[]
+  testCases      TestCaseIssue[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -437,6 +446,10 @@ model TestCase {
 
   steps          TestStep[]
   sharedStepLinks TestCaseSharedStep[]
+  testSetLinks   TestSetCase[]
+  testPlanLinks  TestPlanCase[]
+  runResults     TestRunResult[]
+  issues         TestCaseIssue[]
 
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
@@ -490,4 +503,236 @@ model TestCaseSharedStep {
 
   @@id([testCaseId, sharedStepId])
   @@map("test_case_shared_steps")
+}
+
+// ─────────────────────────────────────────────
+// TEST MANAGEMENT: SETS & PLANS (Phase 2)
+// ─────────────────────────────────────────────
+
+model TestSet {
+  id          String        @id @default(cuid())
+  name        String        // Ví dụ: "Smoke Test Auth", "Regression Payment"
+  description String?
+
+  projectId   String
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  testCases   TestSetCase[]
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([projectId])
+  @@map("test_sets")
+}
+
+model TestSetCase {
+  testSetId  String
+  testSet    TestSet  @relation(fields: [testSetId], references: [id], onDelete: Cascade)
+  testCaseId String
+  testCase   TestCase @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  order      Int      @default(0)
+
+  @@id([testSetId, testCaseId])
+  @@map("test_set_cases")
+}
+
+enum TestPlanStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+  ARCHIVED
+}
+
+enum ExecutionStatus {
+  UNTESTED
+  PASSED
+  FAILED
+  BLOCKED
+  SKIPPED
+}
+
+model TestPlan {
+  id          String         @id @default(cuid())
+  name        String         // Ví dụ: "Kế hoạch QA Sprint 4", "Release v2.0 Regression"
+  description String?
+  status      TestPlanStatus @default(DRAFT)
+  dueDate     DateTime?
+
+  projectId   String
+  project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  sprintId    String?
+  sprint      Sprint?        @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+
+  testCases   TestPlanCase[]
+  testRuns    TestRun[]
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([projectId])
+  @@map("test_plans")
+}
+
+model TestPlanCase {
+  testPlanId String
+  testPlan   TestPlan        @relation(fields: [testPlanId], references: [id], onDelete: Cascade)
+  testCaseId String
+  testCase   TestCase        @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  status     ExecutionStatus @default(UNTESTED)
+  note       String?
+  order      Int             @default(0)
+
+  executedAt DateTime?
+
+  @@id([testPlanId, testCaseId])
+  @@map("test_plan_cases")
+}
+
+// ─────────────────────────────────────────────
+// TEST MANAGEMENT: EXECUTION & DEFECTS (Phase 3)
+// ─────────────────────────────────────────────
+
+model TestEnvironment {
+  id        String    @id @default(cuid())
+  name      String    // Ví dụ: "Staging Chrome", "Production Web", "iOS App", "API Staging"
+  category  String?   // "Web", "Mobile", "API"
+
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  testRuns  TestRun[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([projectId])
+  @@map("test_environments")
+}
+
+enum TestRunStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+model TestRun {
+  id            String           @id @default(cuid())
+  name          String           // Ví dụ: "Test Run 1 - Sprint 5 Cycle"
+  description   String?
+  status        TestRunStatus    @default(IN_PROGRESS)
+
+  projectId     String
+  project       Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  planId        String?
+  plan          TestPlan?        @relation(fields: [planId], references: [id], onDelete: SetNull)
+
+  environmentId String?
+  environment   TestEnvironment? @relation(fields: [environmentId], references: [id], onDelete: SetNull)
+
+  assignedToId  String?
+  assignedTo    User?            @relation("TestRunAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  results       TestRunResult[]
+
+  startedAt     DateTime         @default(now())
+  completedAt   DateTime?
+
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([projectId])
+  @@index([planId])
+  @@map("test_runs")
+}
+
+model TestRunResult {
+  id             String              @id @default(cuid())
+  status         ExecutionStatus     @default(UNTESTED)
+  actualResult   String?             // Ghi chú thực tế lúc chạy
+  elapsedSeconds Int                 @default(0) // Thời gian thực thi (giây)
+
+  testRunId      String
+  testRun        TestRun             @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+
+  testCaseId     String
+  testCase       TestCase            @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+
+  executedById   String?
+  executedBy     User?               @relation("TestRunResultExecutor", fields: [executedById], references: [id], onDelete: SetNull)
+
+  stepResults    TestRunStepResult[]
+  defects        TestRunDefect[]
+
+  executedAt     DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@unique([testRunId, testCaseId])
+  @@index([testRunId])
+  @@index([testCaseId])
+  @@map("test_run_results")
+}
+
+model TestRunStepResult {
+  id           String                  @id @default(cuid())
+  stepId       String                  // ID của TestStep
+  stepOrder    Int
+  status       ExecutionStatus         @default(UNTESTED)
+  actualResult String?
+  comment      String?
+
+  runResultId  String
+  runResult    TestRunResult           @relation(fields: [runResultId], references: [id], onDelete: Cascade)
+
+  attachments  TestRunStepAttachment[]
+
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+
+  @@index([runResultId])
+  @@map("test_run_step_results")
+}
+
+model TestRunStepAttachment {
+  id           String            @id @default(cuid())
+  url          String
+  filename     String
+  publicId     String?
+
+  stepResultId String
+  stepResult   TestRunStepResult @relation(fields: [stepResultId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime          @default(now())
+
+  @@index([stepResultId])
+  @@map("test_run_step_attachments")
+}
+
+model TestRunDefect {
+  runResultId String
+  runResult   TestRunResult @relation(fields: [runResultId], references: [id], onDelete: Cascade)
+
+  issueId     String
+  issue       Issue         @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime      @default(now())
+
+  @@id([runResultId, issueId])
+  @@map("test_run_defects")
+}
+
+model TestCaseIssue {
+  testCaseId String
+  testCase   TestCase @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+
+  issueId    String
+  issue      Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+
+  @@id([testCaseId, issueId])
+  @@map("test_case_issues")
 }

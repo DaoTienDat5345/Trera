@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import {
   LayoutGrid, List, GitMerge, Users, Settings, Search, Filter,
-  ChevronDown, Plus, RefreshCw, ArrowLeft, Play, CheckSquare, BarChart3, FlaskConical
+  ChevronDown, Plus, RefreshCw, ArrowLeft, Play, CheckSquare, BarChart3, FlaskConical, ClipboardList
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -297,6 +297,12 @@ export default function ProjectBoardPage() {
                 className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
               >
                 <FlaskConical size={14} /> Kho Test Case
+              </Link>
+              <Link
+                to={`/projects/${projectId}/test-plans`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+              >
+                <ClipboardList size={14} /> Kế hoạch Test
               </Link>
               <Link
                 to={`/projects/${projectId}/members`}

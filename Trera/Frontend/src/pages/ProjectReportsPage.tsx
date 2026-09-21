@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router";
 import {
   LayoutGrid, List, Users, BarChart3, ArrowLeft, RefreshCw, Printer,
   CheckCircle2, Clock, Layers, Bug, Zap, Sparkles, Filter, GitMerge,
-  TrendingDown, AlertTriangle, UserCheck, Flame
+  TrendingDown, AlertTriangle, UserCheck, Flame, FlaskConical, ClipboardList
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -245,6 +245,18 @@ export default function ProjectReportsPage() {
                 className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-600 hover:text-slate-900 rounded-lg transition-colors font-medium"
               >
                 <List size={14} /> Backlog
+              </Link>
+              <Link
+                to={`/projects/${projectId}/repository`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-600 hover:text-slate-900 rounded-lg transition-colors font-medium"
+              >
+                <FlaskConical size={14} /> Kho Test Case
+              </Link>
+              <Link
+                to={`/projects/${projectId}/test-plans`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-600 hover:text-slate-900 rounded-lg transition-colors font-medium"
+              >
+                <ClipboardList size={14} /> Kế hoạch Test
               </Link>
               <Link
                 to={`/projects/${projectId}/members`}
