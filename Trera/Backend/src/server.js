@@ -22,6 +22,8 @@ import TestSetRouter from "./router/TestSetRouter.js";
 import TestPlanRouter from "./router/TestPlanRouter.js";
 import TestEnvironmentRouter from "./router/TestEnvironmentRouter.js";
 import TestRunRouter from "./router/TestRunRouter.js";
+import TraceabilityRouter from "./router/TraceabilityRouter.js";
+import QADashboardRouter from "./router/QADashboardRouter.js";
 
 dotenv.config();
 
@@ -61,6 +63,8 @@ app.use("/api/projects/:projectId/test-sets", TestSetRouter);
 app.use("/api/projects/:projectId/test-plans", TestPlanRouter);
 app.use("/api/projects/:projectId/test-environments", TestEnvironmentRouter);
 app.use("/api/projects/:projectId/test-runs", TestRunRouter);
+app.use("/api/projects/:projectId/traceability", TraceabilityRouter);
+app.use("/api/projects/:projectId/qa-metrics", QADashboardRouter);
 
 // Issue routes
 app.use("/api/issues", singleIssueRouter);

@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   FlaskConical,
   ClipboardList,
+  GitFork,
 } from "lucide-react";
 import Navbar from "../components/layout/Navbar";
 import { useProjectStore } from "../store/projectStore";
@@ -117,6 +118,12 @@ export default function TestRepositoryPage() {
               className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"
             >
               <ClipboardList size={14} /> Kế hoạch Test
+            </Link>
+            <Link
+              to={`/projects/${projectId}/traceability`}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"
+            >
+              <GitFork size={14} /> Ma trận truy vết
             </Link>
             <Link
               to={`/projects/${projectId}/members`}

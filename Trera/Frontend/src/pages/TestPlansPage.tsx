@@ -10,6 +10,7 @@ import {
   FlaskConical,
   Layers,
   ClipboardList,
+  GitFork,
   Plus,
   Search,
   Calendar,
@@ -455,6 +456,12 @@ export default function TestPlansPage() {
             <button className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] bg-indigo-50 text-indigo-700 rounded-lg font-semibold">
               <ClipboardList size={14} /> Kế hoạch & Chạy Test
             </button>
+            <Link
+              to={`/projects/${projectId}/traceability`}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"
+            >
+              <GitFork size={14} /> Ma trận truy vết
+            </Link>
             <Link
               to={`/projects/${projectId}/members`}
               className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"

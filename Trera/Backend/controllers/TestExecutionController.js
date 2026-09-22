@@ -216,6 +216,9 @@ ${runResult.actualResult || "Hành vi không đúng như mong đợi tại bư�
     });
     const nextOrder = (lastIssue?.order || 0) + 1;
 
+    let issuePriority = priority || "HIGH";
+    if (issuePriority === "CRITICAL") issuePriority = "URGENT";
+
     // Tạo Issue mới loại BUG
     const newBug = await prisma.issue.create({
       data: {
@@ -223,7 +226,7 @@ ${runResult.actualResult || "Hành vi không đúng như mong đợi tại bư�
         description: bugDescription,
         type: "BUG",
         status: "TODO",
-        priority: priority || "HIGH",
+        priority: issuePriority,
         order: nextOrder,
         projectId,
         sprintId: sprintId || tr.plan?.sprintId || null,
