@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router";
-import { LayoutGrid, List, Users, Plus, Trash2, Crown, ArrowLeft, Mail, Shield, User2, X, BarChart3, GitMerge, Clock, Send, XCircle, FlaskConical, ClipboardList, GitFork } from "lucide-react";
+import { LayoutGrid, List, Users, Plus, Trash2, Crown, ArrowLeft, Mail, Shield, User2, X, BarChart3, GitMerge, Clock, Send, XCircle, FlaskConical, ClipboardList, GitFork, Eye, Cpu } from "lucide-react";
 import { toast } from "sonner";
 
 import Navbar from "../components/layout/Navbar";
@@ -20,6 +20,21 @@ interface PendingInvitation {
   invitedBy: { id: string; name: string };
 }
 
+const getRoleBadge = (role: string) => {
+  switch (role) {
+    case "ADMIN":
+      return { label: "Admin", bg: "bg-purple-100", text: "text-purple-700", icon: <Shield size={10} /> };
+    case "TEST_LEAD":
+      return { label: "QA Lead", bg: "bg-indigo-100", text: "text-indigo-700", icon: <Crown size={10} /> };
+    case "TESTER":
+      return { label: "Tester", bg: "bg-emerald-100", text: "text-emerald-700", icon: <FlaskConical size={10} /> };
+    case "VIEWER":
+      return { label: "Viewer", bg: "bg-slate-100", text: "text-slate-600", icon: <Eye size={10} /> };
+    default:
+      return { label: "Thành viên", bg: "bg-blue-100", text: "text-blue-700", icon: <User2 size={10} /> };
+  }
+};
+
 export default function ProjectMembersPage() {
   const { id: projectId } = useParams<{ id: string }>();
   const { user } = useAuthStore();
@@ -28,7 +43,7 @@ export default function ProjectMembersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<"ADMIN" | "MEMBER">("MEMBER");
+  const [inviteRole, setInviteRole] = useState<string>("TESTER");
   const [isInviting, setIsInviting] = useState(false);
   const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
 
@@ -85,6 +100,17 @@ export default function ProjectMembersPage() {
       await load();
     } catch (err: any) {
       toast.error(err.response?.data?.message ?? "Xoá thành viên thất bại");
+    }
+  };
+
+  const handleRoleChange = async (targetUserId: string, newRole: string) => {
+    if (!projectId) return;
+    try {
+      await api.put(`/projects/${projectId}/members/${targetUserId}/role`, { role: newRole });
+      toast.success("Đã cập nhật vai trò thành viên thành công");
+      await load();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message ?? "Không thể cập nhật vai trò");
     }
   };
 
@@ -145,6 +171,9 @@ export default function ProjectMembersPage() {
               <Link to={`/projects/${projectId}/traceability`} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
                 <GitFork size={14} /> Ma trận truy vết
               </Link>
+              <Link to={`/projects/${projectId}/automation`} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
+                <Cpu size={14} /> CI/CD & API
+              </Link>
               <button className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] bg-indigo-50 text-indigo-700 rounded-lg font-medium">
                 <Users size={14} /> Thành viên
               </button>
@@ -202,36 +231,54 @@ export default function ProjectMembersPage() {
                 )}
 
                 {/* Other members */}
-                {members.filter((m) => m.user.id !== currentProject?.ownerId).map((member) => (
-                  <div key={member.id} className="flex items-center gap-4 px-5 py-4 group">
-                    <UserAvatar name={member.user.name} size="md" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[14px] font-semibold text-slate-800 truncate">{member.user.name}</span>
-                        <span className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${member.role === "ADMIN" ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-600"}`}>
-                          {member.role === "ADMIN" ? <><Shield size={9} /> Admin</> : <><User2 size={9} /> Thành viên</>}
-                        </span>
-                        {member.user.id === user?.id && (
-                          <span className="text-[10px] text-slate-400">(Bạn)</span>
-                        )}
+                {members.filter((m) => m.user.id !== currentProject?.ownerId).map((member) => {
+                  const badge = getRoleBadge(member.role);
+                  return (
+                    <div key={member.id} className="flex items-center gap-4 px-5 py-4 group hover:bg-slate-50/60 transition-colors">
+                      <UserAvatar name={member.user.name} size="md" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[14px] font-semibold text-slate-800 truncate">{member.user.name}</span>
+                          <span className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-bold ${badge.bg} ${badge.text}`}>
+                            {badge.icon}
+                            <span>{badge.label}</span>
+                          </span>
+                          {member.user.id === user?.id && (
+                            <span className="text-[10px] text-slate-400 font-medium">(Bạn)</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 mt-0.5 text-[12px] text-slate-400">
+                          <Mail size={11} /> {member.user.email}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1 mt-0.5 text-[12px] text-slate-400">
-                        <Mail size={11} /> {member.user.email}
-                      </div>
-                    </div>
 
-                    {/* Remove button */}
-                    {canManage && member.user.id !== user?.id && (
-                      <button
-                        onClick={() => handleRemove(member.user.id, member.user.name)}
-                        className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                        title="Xoá khỏi dự án"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </div>
-                ))}
+                      {/* Role selection dropdown when canManage */}
+                      {canManage && member.user.id !== user?.id && (
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={member.role}
+                            onChange={(e) => handleRoleChange(member.user.id, e.target.value)}
+                            className="text-[12px] font-semibold bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          >
+                            <option value="ADMIN">Admin</option>
+                            <option value="TEST_LEAD">QA Lead</option>
+                            <option value="TESTER">Tester</option>
+                            <option value="MEMBER">Thành viên</option>
+                            <option value="VIEWER">Viewer</option>
+                          </select>
+
+                          <button
+                            onClick={() => handleRemove(member.user.id, member.user.name)}
+                            className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                            title="Xoá khỏi dự án"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -330,19 +377,18 @@ export default function ProjectMembersPage() {
                 />
               </div>
               <div>
-                <label className="text-[12px] font-semibold text-slate-500 block mb-1.5">Vai trò</label>
-                <div className="flex gap-3">
-                  {(["MEMBER", "ADMIN"] as const).map((role) => (
-                    <label key={role} className={`flex-1 flex items-center gap-2 px-4 py-2.5 border-2 rounded-xl cursor-pointer transition-colors ${inviteRole === role ? "border-indigo-400 bg-indigo-50" : "border-slate-200 hover:border-slate-300"}`}>
-                      <input type="radio" name="role" value={role} checked={inviteRole === role} onChange={() => setInviteRole(role)} className="sr-only" />
-                      {role === "ADMIN" ? <Shield size={14} className="text-indigo-500" /> : <User2 size={14} className="text-slate-400" />}
-                      <div>
-                        <div className="text-[13px] font-semibold text-slate-700">{role === "ADMIN" ? "Admin" : "Thành viên"}</div>
-                        <div className="text-[11px] text-slate-400">{role === "ADMIN" ? "Toàn quyền quản lý" : "Xem & thực hiện công việc"}</div>
-                      </div>
-                    </label>
-                  ))}
-                </div>
+                <label className="text-[12px] font-semibold text-slate-500 block mb-1.5">Vai trò trong dự án</label>
+                <select
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value)}
+                  className="w-full text-[13px] font-semibold border border-slate-200 rounded-xl px-4 py-2.5 bg-white text-slate-800 focus:outline-none focus:border-indigo-400"
+                >
+                  <option value="TESTER">Tester (Kiểm thử viên - Tạo/sửa test case & chạy test)</option>
+                  <option value="TEST_LEAD">QA Lead (Quản lý kế hoạch kiểm thử & tokens)</option>
+                  <option value="ADMIN">Admin (Quản trị viên toàn quyền)</option>
+                  <option value="MEMBER">Thành viên (Lập trình viên / Thành viên)</option>
+                  <option value="VIEWER">Viewer (Chỉ xem báo cáo & dữ liệu test)</option>
+                </select>
               </div>
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={() => setShowInviteModal(false)} className="flex-1 py-2.5 text-[13px] border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-colors">Huỷ</button>

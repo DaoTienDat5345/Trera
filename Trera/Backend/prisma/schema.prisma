@@ -36,6 +36,7 @@ model User {
   authoredTestCases    TestCase[]           @relation("TestCaseAuthor")
   assignedTestRuns     TestRun[]            @relation("TestRunAssignee")
   executedRunResults   TestRunResult[]      @relation("TestRunResultExecutor")
+  createdApiTokens     ApiToken[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -67,6 +68,8 @@ model Project {
   testPlans   TestPlan[]
   testEnvironments TestEnvironment[]
   testRuns    TestRun[]
+  apiTokens   ApiToken[]
+  webhooks    Webhook[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -95,6 +98,9 @@ model ProjectMember {
 enum ProjectMemberRole {
   ADMIN
   MEMBER
+  TEST_LEAD
+  TESTER
+  VIEWER
 }
 
 // ─────────────────────────────────────────────
@@ -736,3 +742,49 @@ model TestCaseIssue {
   @@id([testCaseId, issueId])
   @@map("test_case_issues")
 }
+
+// ─────────────────────────────────────────────
+// AUTOMATION & CI/CD
+// ─────────────────────────────────────────────
+model ApiToken {
+  id          String    @id @default(cuid())
+  name        String
+  tokenHash   String    @unique
+  prefix      String
+  role        String    @default("AUTOMATION") // "AUTOMATION", "FULL_ACCESS", "READ_ONLY"
+
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  userId      String
+  createdBy   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  expiresAt   DateTime?
+  lastUsedAt  DateTime?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([projectId])
+  @@index([tokenHash])
+  @@map("api_tokens")
+}
+
+model Webhook {
+  id          String    @id @default(cuid())
+  name        String
+  url         String
+  secret      String?
+  events      String[]  @default(["TEST_RUN_COMPLETED"])
+  isActive    Boolean   @default(true)
+
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([projectId])
+  @@map("webhooks")
+}
+

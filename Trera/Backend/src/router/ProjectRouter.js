@@ -6,6 +6,7 @@ import {
   updateProject,
   deleteProject,
   removeMember,
+  updateMemberRole,
 } from "../../controllers/ProjectController.js";
 import {
   sendInvitation,
@@ -37,6 +38,7 @@ router.delete("/:id", checkProjectMember, checkProjectOwner, deleteProject);
 
 // Quản lý thành viên trong dự án
 router.post("/:id/members", checkProjectMember, checkProjectAdmin, sendInvitation);
+router.put("/:id/members/:userId/role", checkProjectMember, checkProjectAdmin, updateMemberRole);
 router.delete("/:id/members/:userId", checkProjectMember, removeMember);
 
 // Quản lý lời mời

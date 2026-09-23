@@ -11,6 +11,7 @@ import {
   Layers,
   ClipboardList,
   GitFork,
+  Cpu,
   Search,
   CheckCircle2,
   XCircle,
@@ -201,6 +202,12 @@ export default function TraceabilityPage() {
             <button className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] bg-indigo-50 text-indigo-700 rounded-lg font-semibold">
               <GitFork size={14} /> Ma trận truy vết
             </button>
+            <Link
+              to={`/projects/${projectId}/automation`}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"
+            >
+              <Cpu size={14} /> CI/CD & API
+            </Link>
             <Link
               to={`/projects/${projectId}/members`}
               className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"

@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router";
 import {
   LayoutGrid, List, Users, BarChart3, ArrowLeft, RefreshCw, Printer,
   CheckCircle2, Clock, Layers, Bug, Zap, Sparkles, Filter, GitMerge,
-  TrendingDown, AlertTriangle, UserCheck, Flame, FlaskConical, ClipboardList, GitFork
+  TrendingDown, AlertTriangle, UserCheck, Flame, FlaskConical, ClipboardList, GitFork, Cpu
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -263,6 +263,12 @@ export default function ProjectReportsPage() {
                 className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-600 hover:text-slate-900 rounded-lg transition-colors font-medium"
               >
                 <GitFork size={14} /> Ma trận truy vết
+              </Link>
+              <Link
+                to={`/projects/${projectId}/automation`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-600 hover:text-slate-900 rounded-lg transition-colors font-medium"
+              >
+                <Cpu size={14} /> CI/CD & API
               </Link>
               <Link
                 to={`/projects/${projectId}/members`}

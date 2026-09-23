@@ -418,3 +418,55 @@ export const removeMember = async (req, res) => {
     return res.status(500).json({ message: "Lỗi hệ thống khi xoá thành viên." });
   }
 };
+
+/**
+ * Cập nhật vai trò thành viên trong dự án (Granular RBAC)
+ * PUT /api/projects/:id/members/:userId/role
+ */
+export const updateMemberRole = async (req, res) => {
+  try {
+    const { id: projectId, userId } = req.params;
+    const { role } = req.body;
+
+    if (!role || !["ADMIN", "MEMBER", "TEST_LEAD", "TESTER", "VIEWER"].includes(role.toUpperCase())) {
+      return res.status(400).json({
+        message: "Vai trò không hợp lệ. Các vai trò hợp lệ: ADMIN, TEST_LEAD, TESTER, MEMBER, VIEWER.",
+      });
+    }
+
+    if (userId === req.project.ownerId) {
+      return res.status(400).json({
+        message: "Không thể thay đổi vai trò của Chủ sở hữu (Owner) dự án.",
+      });
+    }
+
+    const member = await prisma.projectMember.findUnique({
+      where: {
+        projectId_userId: { projectId, userId },
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+      },
+    });
+
+    if (!member) {
+      return res.status(404).json({ message: "Thành viên không tồn tại trong dự án." });
+    }
+
+    const updated = await prisma.projectMember.update({
+      where: { id: member.id },
+      data: { role: role.toUpperCase() },
+      include: {
+        user: { select: { id: true, name: true, email: true, avatar: true } },
+      },
+    });
+
+    return res.status(200).json({
+      message: `Đã cập nhật vai trò của "${member.user.name}" thành ${role.toUpperCase()}.`,
+      member: updated,
+    });
+  } catch (error) {
+    console.error("Lỗi cập nhật vai trò thành viên:", error);
+    return res.status(500).json({ message: "Lỗi hệ thống khi cập nhật vai trò thành viên." });
+  }
+};

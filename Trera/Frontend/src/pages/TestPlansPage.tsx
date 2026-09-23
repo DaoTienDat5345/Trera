@@ -11,6 +11,7 @@ import {
   Layers,
   ClipboardList,
   GitFork,
+  Cpu,
   Plus,
   Search,
   Calendar,
@@ -461,6 +462,12 @@ export default function TestPlansPage() {
               className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"
             >
               <GitFork size={14} /> Ma trận truy vết
+            </Link>
+            <Link
+              to={`/projects/${projectId}/automation`}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"
+            >
+              <Cpu size={14} /> CI/CD & API
             </Link>
             <Link
               to={`/projects/${projectId}/members`}

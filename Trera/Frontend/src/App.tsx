@@ -24,6 +24,7 @@ import InvitationResponsePage from "./pages/InvitationResponsePage";
 import TestRepositoryPage from "./pages/TestRepositoryPage";
 import TestPlansPage from "./pages/TestPlansPage";
 import TraceabilityPage from "./pages/TraceabilityPage";
+import AutomationPage from "./pages/AutomationPage";
 
 function App() {
   const { token, checkAuth } = useAuthStore();
@@ -90,6 +91,7 @@ function App() {
             <Route path="/projects/:id/repository" element={<TestRepositoryPage />} />
             <Route path="/projects/:id/test-plans" element={<TestPlansPage />} />
             <Route path="/projects/:id/traceability" element={<TraceabilityPage />} />
+            <Route path="/projects/:id/automation" element={<AutomationPage />} />
             <Route path="/projects/:id/members" element={<ProjectMembersPage />} />
             <Route path="/projects/:id/reports" element={<ProjectReportsPage />} />
             <Route path="/projects/:id/activity" element={<ProjectActivityPage />} />

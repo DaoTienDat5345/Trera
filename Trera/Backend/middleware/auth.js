@@ -1,13 +1,17 @@
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import { prisma } from "../config/prisma.js";
 
 export const protect = async (req, res, next) => {
   try {
     let token;
     const authHeader = req.headers.authorization;
+    const apiKeyHeader = req.headers["x-api-key"];
 
     if (authHeader && authHeader.startsWith("Bearer ")) {
       token = authHeader.split(" ")[1];
+    } else if (apiKeyHeader) {
+      token = apiKeyHeader;
     }
 
     if (!token) {
@@ -16,6 +20,59 @@ export const protect = async (req, res, next) => {
       });
     }
 
+    // 1. Check if token is an API Token (starts with 'tre_')
+    if (token.startsWith("tre_")) {
+      const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+      const apiToken = await prisma.apiToken.findUnique({
+        where: { tokenHash },
+        include: {
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+          project: {
+            select: {
+              id: true,
+              name: true,
+              key: true,
+            },
+          },
+        },
+      });
+
+      if (!apiToken) {
+        return res.status(401).json({
+          message: "API Token không hợp lệ hoặc đã bị thu hồi.",
+        });
+      }
+
+      if (apiToken.expiresAt && new Date(apiToken.expiresAt) < new Date()) {
+        return res.status(401).json({
+          message: "API Token đã hết hạn sử dụng.",
+        });
+      }
+
+      // Update lastUsedAt asynchronously
+      prisma.apiToken.update({
+        where: { id: apiToken.id },
+        data: { lastUsedAt: new Date() },
+      }).catch((err) => console.error("Error updating token lastUsedAt:", err));
+
+      req.user = apiToken.createdBy;
+      req.apiToken = apiToken;
+      req.isApiToken = true;
+      req.tokenProjectId = apiToken.projectId;
+
+      return next();
+    }
+
+    // 2. Standard JWT token
     const secret = process.env.JWT_SECRET || "your_super_secret_jwt_key_change_this_in_production";
     
     let decoded;
