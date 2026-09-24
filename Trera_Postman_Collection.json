@@ -1,8 +1,8 @@
 {
   "info": {
-    "_postman_id": "trera-api-collection-v1",
-    "name": "Trera - Jira Clone API",
-    "description": "Bộ sưu tập Postman hoàn chỉnh cho toàn bộ API của dự án Trera (Jira/Trello Clone).\n\nTự động lưu và truyền Token, Project ID, Sprint ID, Issue ID giữa các request mà không cần copy paste thủ công.",
+    "_postman_id": "trera-api-collection-v2",
+    "name": "Trera - Jira & QA Test Management Platform API",
+    "description": "Bộ sưu tập Postman hoàn chỉnh và cập nhật nhất cho toàn bộ hệ thống Trera: Quản lý dự án Agile/Jira (Kanban, Sprint, Issue, Comment, Checklist, Attachment, Notification, Invitation) và Hệ thống Kiểm thử Toàn diện QA TestRail/Xray (Test Repository Folders, Test Cases, Shared Steps, Test Sets, Test Plans, Test Environments, Test Runs & Runner, 1-Click Bug Logging, Traceability Matrix, QA Dashboard Metrics, CI/CD API Tokens, Automation JUnit/Cucumber Import, Webhooks).\n\nTự động lưu và truyền Token, Project ID, Sprint ID, Issue ID, Test Case ID, Test Plan ID, Test Run ID... giữa các request một cách thông minh mà không cần copy paste thủ công.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -35,29 +35,111 @@
       "key": "commentId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "checklistItemId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "attachmentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "notificationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "invitationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "invitationToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testFolderId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testCaseId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sharedStepId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testSetId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testPlanId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "environmentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testRunId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "apiTokenId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ciToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "webhookId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
+    {
+      "name": "0. System Health Check",
+      "item": [
+        {
+          "name": "Health Check (Kiểm tra trạng thái server)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Kiểm tra kết nối và trạng thái hoạt động của Backend server Trera."
+          }
+        }
+      ]
+    },
     {
       "name": "1. Authentication",
       "item": [
         {
           "name": "Register (Đăng ký tài khoản)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "    var json = pm.response.json();",
-                  "    pm.collectionVariables.set('token', json.token);",
-                  "    console.log('✅ Đã tự động lưu Token:', json.token);",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
           "request": {
             "method": "POST",
             "header": [
@@ -72,29 +154,36 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "register"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
             },
-            "description": "Tạo tài khoản mới và tự động lưu Token vào biến môi trường để dùng cho các request tiếp theo."
-          }
-        },
-        {
-          "name": "Login (Đăng nhập)",
+            "description": "Tạo tài khoản người dùng mới và tự động lưu JWT token vào collection variables."
+          },
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "if (pm.response.code === 200) {",
+                  "if (pm.response.code === 201) {",
                   "    var json = pm.response.json();",
-                  "    pm.collectionVariables.set('token', json.token);",
-                  "    console.log('✅ Đã tự động cập nhật Token mới:', json.token);",
+                  "    if (json.token) {",
+                  "        pm.collectionVariables.set('token', json.token);",
+                  "        console.log('✅ Đã tự động lưu Token:', json.token);",
+                  "    }",
                   "}"
                 ],
                 "type": "text/javascript"
               }
             }
-          ],
+          ]
+        },
+        {
+          "name": "Login (Đăng nhập)",
           "request": {
             "method": "POST",
             "header": [
@@ -109,10 +198,33 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Đăng nhập và tự động cập nhật Bearer token mới."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.token) {",
+                  "        pm.collectionVariables.set('token', json.token);",
+                  "        console.log('✅ Đã cập nhật Token mới:', json.token);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
             }
-          }
+          ]
         },
         {
           "name": "Get Profile (Lấy thông tin cá nhân)",
@@ -131,13 +243,19 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/auth/me",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "me"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Lấy thông tin tài khoản hiện tại từ JWT Token."
           }
         },
         {
-          "name": "Update Profile (Đổi tên hiển thị)",
+          "name": "Update Profile (Cập nhật tên hiển thị)",
           "request": {
             "auth": {
               "type": "bearer",
@@ -162,9 +280,53 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/me",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "me"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Cập nhật tên hiển thị của người dùng hiện tại."
+          }
+        },
+        {
+          "name": "Change Password (Đổi mật khẩu)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newpassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/me/password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me",
+                "password"
+              ]
+            },
+            "description": "Thay đổi mật khẩu tài khoản (cần mật khẩu hiện tại và mật khẩu mới tối thiểu 6 ký tự)."
           }
         }
       ]
@@ -174,6 +336,39 @@
       "item": [
         {
           "name": "Create Project (Tạo dự án mới)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dự án E-Commerce App\",\n  \"description\": \"Hệ thống sàn thương mại điện tử tích hợp quản lý kiểm thử chất lượng QA.\",\n  \"key\": \"ECO\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects"
+              ]
+            },
+            "description": "Tạo dự án mới. Tự động lưu projectId vào biến môi trường để dùng cho tất cả endpoint dự án tiếp theo."
+          },
           "event": [
             {
               "listen": "test",
@@ -181,47 +376,42 @@
                 "exec": [
                   "if (pm.response.code === 201) {",
                   "    var json = pm.response.json();",
-                  "    pm.collectionVariables.set('projectId', json.project.id);",
-                  "    console.log('✅ Đã lưu Project ID:', json.project.id);",
+                  "    if (json.project && json.project.id) {",
+                  "        pm.collectionVariables.set('projectId', json.project.id);",
+                  "        console.log('✅ Đã lưu Project ID:', json.project.id);",
+                  "    }",
                   "}"
                 ],
                 "type": "text/javascript"
               }
             }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
-            },
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Dự án E-Commerce App\",\n  \"description\": \"Xây dựng hệ thống thương mại điện tử với React & Node.js\",\n  \"key\": \"ECO\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/projects",
-              "host": ["{{baseUrl}}"],
-              "path": ["projects"]
-            },
-            "description": "Tạo dự án mới. Tự động lưu projectId vào biến môi trường."
-          }
+          ]
         },
         {
           "name": "Get All Projects (Danh sách dự án của tôi)",
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/projects",
-              "host": ["{{baseUrl}}"],
-              "path": ["projects"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects"
+              ]
+            },
+            "description": "Lấy danh sách tất cả dự án mà người dùng tham gia (là Owner hoặc Member)."
           }
         },
         {
@@ -229,96 +419,479 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/projects/{{projectId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["projects", "{{projectId}}"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}"
+              ]
+            },
+            "description": "Lấy chi tiết dự án bao gồm Owner và danh sách thành viên."
           }
         },
         {
-          "name": "Update Project (Sửa tên & mô tả)",
+          "name": "Update Project (Cập nhật tên & mô tả dự án)",
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Dự án E-Commerce App (V2)\",\n  \"description\": \"Nâng cấp tính năng thanh toán và giao diện\"\n}"
+              "raw": "{\n  \"name\": \"Dự án E-Commerce App (V2)\",\n  \"description\": \"Nâng cấp tính năng thanh toán, QA Automation và giao diện mượt mà.\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/projects/{{projectId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["projects", "{{projectId}}"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}"
+              ]
+            },
+            "description": "Cập nhật thông tin dự án (yêu cầu quyền Admin/Owner)."
           }
         },
         {
-          "name": "Invite Member (Mời thành viên qua Email)",
+          "name": "Get Project Analytics (Báo cáo tổng quan dự án & Burndown)",
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/analytics?sprintId=all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "analytics"
+              ],
+              "query": [
+                {
+                  "key": "sprintId",
+                  "value": "all"
+                }
+              ]
+            },
+            "description": "Lấy dữ liệu biểu đồ Burndown Chart, tỷ lệ hoàn thành, thống kê theo trạng thái/độ ưu tiên/loại việc và khối lượng việc của thành viên."
+          }
+        },
+        {
+          "name": "Get Project Activities (Lịch sử hoạt động của dự án)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/activities?page=1&limit=30&type=all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "activities"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "30"
+                },
+                {
+                  "key": "type",
+                  "value": "all"
+                }
+              ]
+            },
+            "description": "Lấy nhật ký hoạt động (Audit log) của dự án với phân trang và lọc theo action type."
+          }
+        },
+        {
+          "name": "Invite Member (Gửi lời mời thành viên tham gia)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"member@trera.com\",\n  \"role\": \"MEMBER\"\n}"
+              "raw": "{\n  \"email\": \"tester@trera.com\",\n  \"role\": \"TESTER\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/projects/{{projectId}}/members",
-              "host": ["{{baseUrl}}"],
-              "path": ["projects", "{{projectId}}", "members"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "members"
+              ]
+            },
+            "description": "Gửi lời mời thành viên qua email tham gia dự án với vai trò chỉ định (ADMIN, MEMBER, TEST_LEAD, TESTER, VIEWER)."
           }
         },
         {
-          "name": "Remove Member (Xoá thành viên)",
+          "name": "Update Member Role (Đổi vai trò thành viên)",
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"TEST_LEAD\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/members/:userId/role",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "members",
+                ":userId",
+                "role"
+              ]
+            },
+            "description": "Cập nhật vai trò RBAC cho thành viên trong dự án (ADMIN, MEMBER, TEST_LEAD, TESTER, VIEWER)."
+          }
+        },
+        {
+          "name": "Remove Member (Xoá thành viên khỏi dự án)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "method": "DELETE",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/projects/{{projectId}}/members/:userId",
-              "host": ["{{baseUrl}}"],
-              "path": ["projects", "{{projectId}}", "members", ":userId"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "members",
+                ":userId"
+              ]
+            },
+            "description": "Xoá thành viên ra khỏi dự án hoặc thành viên tự rời dự án."
           }
         },
         {
-          "name": "Delete Project (Xoá dự án)",
+          "name": "Get Project Invitations (Danh sách lời mời dự án)",
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/invitations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "invitations"
+              ]
+            },
+            "description": "Xem danh sách các lời mời đang chờ phản hồi trong dự án."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.invitations && json.invitations.length > 0) {",
+                  "        pm.collectionVariables.set('invitationId', json.invitations[0].id);",
+                  "        pm.collectionVariables.set('invitationToken', json.invitations[0].token);",
+                  "        console.log('✅ Đã lưu invitationId:', json.invitations[0].id);",
+                  "        console.log('✅ Đã lưu invitationToken:', json.invitations[0].token);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancel Project Invitation (Huỷ lời mời)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/invitations/{{invitationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "invitations",
+                "{{invitationId}}"
+              ]
+            },
+            "description": "Huỷ một lời mời tham gia dự án đang chờ xử lý."
+          }
+        },
+        {
+          "name": "Delete Project (Xoá vĩnh viễn dự án)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "method": "DELETE",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/projects/{{projectId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["projects", "{{projectId}}"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}"
+              ]
+            },
+            "description": "Xoá toàn bộ dự án (chỉ Owner có quyền thực hiện)."
           }
         }
       ]
     },
     {
-      "name": "3. Sprints",
+      "name": "3. Invitations (Public Handling)",
+      "item": [
+        {
+          "name": "Get Invitation By Token (Xem thông tin lời mời)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/invitations/{{invitationToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invitations",
+                "{{invitationToken}}"
+              ]
+            },
+            "description": "API công khai (không cần login) để xem thông tin dự án và người mời trước khi chấp nhận."
+          }
+        },
+        {
+          "name": "Respond to Invitation - Accept (Chấp nhận lời mời)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"accept\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/invitations/{{invitationToken}}/respond",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invitations",
+                "{{invitationToken}}",
+                "respond"
+              ]
+            },
+            "description": "Chấp nhận lời mời gia nhập dự án. Tự động thêm tài khoản vào danh sách thành viên dự án."
+          }
+        },
+        {
+          "name": "Respond to Invitation - Decline (Từ chối lời mời)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"decline\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/invitations/{{invitationToken}}/respond",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invitations",
+                "{{invitationToken}}",
+                "respond"
+              ]
+            },
+            "description": "Từ chối lời mời tham gia dự án."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Sprints",
       "item": [
         {
           "name": "Create Sprint (Tạo Sprint mới)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sprint 1 - Xây dựng MVP & QA Automation\",\n  \"goal\": \"Hoàn thiện luồng đăng ký, đăng nhập và bộ test tự động kiểm thử thanh toán\",\n  \"startDate\": \"2026-10-01T00:00:00.000Z\",\n  \"endDate\": \"2026-10-15T00:00:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/sprints",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "sprints"
+              ]
+            },
+            "description": "Tạo Sprint mới trong dự án và lưu sprintId vào collection variables."
+          },
           "event": [
             {
               "listen": "test",
@@ -326,123 +899,219 @@
                 "exec": [
                   "if (pm.response.code === 201) {",
                   "    var json = pm.response.json();",
-                  "    pm.collectionVariables.set('sprintId', json.sprint.id);",
-                  "    console.log('✅ Đã lưu Sprint ID:', json.sprint.id);",
+                  "    if (json.sprint && json.sprint.id) {",
+                  "        pm.collectionVariables.set('sprintId', json.sprint.id);",
+                  "        console.log('✅ Đã lưu Sprint ID:', json.sprint.id);",
+                  "    }",
                   "}"
                 ],
                 "type": "text/javascript"
               }
             }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
-            },
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Sprint 1 - Xây dựng MVP\",\n  \"goal\": \"Hoàn thành trang đăng nhập và luồng mua hàng\",\n  \"startDate\": \"2026-09-08T00:00:00.000Z\",\n  \"endDate\": \"2026-09-22T00:00:00.000Z\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/projects/{{projectId}}/sprints",
-              "host": ["{{baseUrl}}"],
-              "path": ["projects", "{{projectId}}", "sprints"]
-            }
-          }
+          ]
         },
         {
-          "name": "Get All Sprints (Danh sách Sprint & Thống kê)",
+          "name": "Get All Sprints (Danh sách Sprint trong dự án)",
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/projects/{{projectId}}/sprints",
-              "host": ["{{baseUrl}}"],
-              "path": ["projects", "{{projectId}}", "sprints"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "sprints"
+              ]
+            },
+            "description": "Lấy tất cả các Sprint kèm thống kê tiến độ hoàn thành các tasks trong từng Sprint."
           }
         },
         {
-          "name": "Update Sprint (Sửa Sprint)",
+          "name": "Update Sprint (Sửa thông tin Sprint)",
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Sprint 1 - Xây dựng MVP (Updated)\",\n  \"goal\": \"Mục tiêu bổ sung thêm thanh toán QR\"\n}"
+              "raw": "{\n  \"name\": \"Sprint 1 - MVP & E2E Testing (Updated)\",\n  \"goal\": \"Bổ sung kiểm thử tự động API và báo cáo lỗi tức thì\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/projects/{{projectId}}/sprints/{{sprintId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["projects", "{{projectId}}", "sprints", "{{sprintId}}"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "sprints",
+                "{{sprintId}}"
+              ]
+            },
+            "description": "Cập nhật tên, mục tiêu, hoặc ngày chạy của Sprint."
           }
         },
         {
-          "name": "Start Sprint (Bắt đầu Sprint -> ACTIVE)",
+          "name": "Start Sprint (Kích hoạt Sprint -> ACTIVE)",
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "method": "PATCH",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/projects/{{projectId}}/sprints/{{sprintId}}/start",
-              "host": ["{{baseUrl}}"],
-              "path": ["projects", "{{projectId}}", "sprints", "{{sprintId}}", "start"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "sprints",
+                "{{sprintId}}",
+                "start"
+              ]
+            },
+            "description": "Bắt đầu Sprint. Chỉ có thể có 1 Sprint ở trạng thái ACTIVE cùng lúc trong dự án."
           }
         },
         {
-          "name": "Complete Sprint (Kết thúc Sprint -> Tự động chuyển task chưa xong về Backlog)",
+          "name": "Complete Sprint (Đóng Sprint -> Chuyển task tồn về Backlog)",
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "method": "PATCH",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/projects/{{projectId}}/sprints/{{sprintId}}/complete",
-              "host": ["{{baseUrl}}"],
-              "path": ["projects", "{{projectId}}", "sprints", "{{sprintId}}", "complete"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "sprints",
+                "{{sprintId}}",
+                "complete"
+              ]
+            },
+            "description": "Kết thúc Sprint (chuyển sang COMPLETED). Tất cả công việc chưa xong sẽ tự động quay về Backlog."
           }
         },
         {
-          "name": "Delete Sprint (Xoá Sprint Planning)",
+          "name": "Delete Sprint (Xoá Sprint)",
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "method": "DELETE",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/projects/{{projectId}}/sprints/{{sprintId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["projects", "{{projectId}}", "sprints", "{{sprintId}}"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "sprints",
+                "{{sprintId}}"
+              ]
+            },
+            "description": "Xoá Sprint. Các công việc bên trong sẽ được đưa về Backlog mà không bị xoá mất."
           }
         }
       ]
     },
     {
-      "name": "4. Issues (Tasks, Bugs, Features)",
+      "name": "5. Issues (Tasks, Bugs, Stories)",
       "item": [
         {
           "name": "Create Issue in Sprint (Tạo task trong Sprint)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Xây dựng cổng thanh toán trực tuyến\",\n  \"description\": \"Tích hợp cổng thanh toán VNPay và kiểm thử các kịch bản hoàn tiền, huỷ đơn.\",\n  \"type\": \"FEATURE\",\n  \"priority\": \"HIGH\",\n  \"status\": \"TODO\",\n  \"sprintId\": \"{{sprintId}}\",\n  \"labels\": [\n    \"backend\",\n    \"payment\",\n    \"qa-needed\"\n  ],\n  \"dueDate\": \"2026-10-10T17:00:00.000Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/issues",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "issues"
+              ]
+            },
+            "description": "Tạo công việc/User story mới gán vào Sprint cụ thể và lưu issueId."
+          },
           "event": [
             {
               "listen": "test",
@@ -450,50 +1119,53 @@
                 "exec": [
                   "if (pm.response.code === 201) {",
                   "    var json = pm.response.json();",
-                  "    pm.collectionVariables.set('issueId', json.issue.id);",
-                  "    console.log('✅ Đã lưu Issue ID:', json.issue.id);",
+                  "    if (json.issue && json.issue.id) {",
+                  "        pm.collectionVariables.set('issueId', json.issue.id);",
+                  "        console.log('✅ Đã lưu Issue ID:', json.issue.id);",
+                  "    }",
                   "}"
                 ],
                 "type": "text/javascript"
               }
             }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
-            },
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Thiết kế giao diện giỏ hàng\",\n  \"description\": \"Áp dụng shadcn/ui và TailwindCSS để tạo giỏ hàng mượt mà\",\n  \"type\": \"TASK\",\n  \"priority\": \"HIGH\",\n  \"status\": \"TODO\",\n  \"sprintId\": \"{{sprintId}}\",\n  \"labels\": [\"frontend\", \"ui\"],\n  \"dueDate\": \"2026-09-15T00:00:00.000Z\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/projects/{{projectId}}/issues",
-              "host": ["{{baseUrl}}"],
-              "path": ["projects", "{{projectId}}", "issues"]
-            }
-          }
+          ]
         },
         {
-          "name": "Create Issue in Backlog (Tạo task ở Backlog)",
+          "name": "Create Issue in Backlog (Tạo task trong Backlog)",
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Nghiên cứu tính năng thông báo Realtime\",\n  \"description\": \"Sử dụng Socket.io hoặc Server-Sent Events\",\n  \"type\": \"FEATURE\",\n  \"priority\": \"LOW\",\n  \"labels\": [\"research\"]\n}"
+              "raw": "{\n  \"title\": \"Tối ưu hóa hiệu năng cơ sở dữ liệu và truy vấn kiểm thử\",\n  \"description\": \"Đánh index cho các bảng lớn và chuẩn bị kịch bản Load Testing\",\n  \"type\": \"IMPROVEMENT\",\n  \"priority\": \"MEDIUM\",\n  \"labels\": [\n    \"database\",\n    \"performance\"\n  ]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/projects/{{projectId}}/issues",
-              "host": ["{{baseUrl}}"],
-              "path": ["projects", "{{projectId}}", "issues"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "issues"
+              ]
+            },
+            "description": "Tạo công việc vào Backlog (không truyền sprintId)."
           }
         },
         {
@@ -501,32 +1173,106 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/projects/{{projectId}}/issues",
-              "host": ["{{baseUrl}}"],
-              "path": ["projects", "{{projectId}}", "issues"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "issues"
+              ]
+            },
+            "description": "Lấy danh sách tất cả các Issue trong dự án."
           }
         },
         {
-          "name": "Get Backlog Issues (Lọc task trong Backlog)",
+          "name": "Get Backlog Issues (Lọc các task trong Backlog)",
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/projects/{{projectId}}/issues?sprintId=backlog",
-              "host": ["{{baseUrl}}"],
-              "path": ["projects", "{{projectId}}", "issues"],
-              "query": [{ "key": "sprintId", "value": "backlog" }]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "issues"
+              ],
+              "query": [
+                {
+                  "key": "sprintId",
+                  "value": "backlog"
+                }
+              ]
+            },
+            "description": "Lấy danh sách công việc chưa được gán vào Sprint nào (Backlog)."
+          }
+        },
+        {
+          "name": "Get Filtered Issues (Lọc theo trạng thái & loại)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/issues?status=TODO&priority=HIGH&type=BUG",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "issues"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "TODO"
+                },
+                {
+                  "key": "priority",
+                  "value": "HIGH"
+                },
+                {
+                  "key": "type",
+                  "value": "BUG"
+                }
+              ]
+            },
+            "description": "Lọc công việc theo status (TODO, IN_PROGRESS, IN_REVIEW, DONE), priority (LOW, MEDIUM, HIGH, URGENT), type (BUG, FEATURE, TASK, IMPROVEMENT) hoặc tìm kiếm theo từ khoá."
           }
         },
         {
@@ -534,35 +1280,64 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/issues/{{issueId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["issues", "{{issueId}}"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "issues",
+                "{{issueId}}"
+              ]
+            },
+            "description": "Lấy chi tiết một Issue bao gồm Checklist, Comments, Attachments và Activity history."
           }
         },
         {
-          "name": "Update Issue (Cập nhật tiến độ sang DONE)",
+          "name": "Update Issue (Cập nhật tiến độ / trạng thái)",
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"DONE\",\n  \"priority\": \"URGENT\"\n}"
+              "raw": "{\n  \"status\": \"IN_PROGRESS\",\n  \"priority\": \"URGENT\",\n  \"description\": \"Đã bắt đầu xử lý kịch bản kiểm thử tích hợp\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/issues/{{issueId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["issues", "{{issueId}}"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "issues",
+                "{{issueId}}"
+              ]
+            },
+            "description": "Cập nhật tiêu đề, trạng thái, độ ưu tiên, người được gán hoặc hạn hoàn thành của task."
           }
         },
         {
@@ -570,19 +1345,38 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"updates\": [\n    {\n      \"id\": \"{{issueId}}\",\n      \"status\": \"IN_PROGRESS\",\n      \"order\": 0\n    }\n  ]\n}"
+              "raw": "{\n  \"updates\": [\n    {\n      \"id\": \"{{issueId}}\",\n      \"status\": \"IN_REVIEW\",\n      \"order\": 0\n    }\n  ]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/projects/{{projectId}}/issues/reorder",
-              "host": ["{{baseUrl}}"],
-              "path": ["projects", "{{projectId}}", "issues", "reorder"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "issues",
+                "reorder"
+              ]
+            },
+            "description": "Cập nhật hàng loạt vị trí và trạng thái sau khi kéo thả trên bảng Kanban. Đồng thời bắn thông báo Realtime qua WebSocket."
           }
         },
         {
@@ -590,24 +1384,71 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "method": "DELETE",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/issues/{{issueId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["issues", "{{issueId}}"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "issues",
+                "{{issueId}}"
+              ]
+            },
+            "description": "Xoá vĩnh viễn công việc và toàn bộ bình luận, tệp đính kèm liên quan."
           }
         }
       ]
     },
     {
-      "name": "5. Comments",
+      "name": "6. Comments",
       "item": [
         {
-          "name": "Add Comment (Thêm bình luận)",
+          "name": "Add Comment (Thêm bình luận cho Issue)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Kịch bản kiểm thử API đã được tự động kích hoạt qua CI/CD pipeline.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/issues/{{issueId}}/comments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "issues",
+                "{{issueId}}",
+                "comments"
+              ]
+            },
+            "description": "Thêm bình luận mới vào công việc và tự động gửi thông báo cho Assignees / Reporter."
+          },
           "event": [
             {
               "listen": "test",
@@ -615,66 +1456,81 @@
                 "exec": [
                   "if (pm.response.code === 201) {",
                   "    var json = pm.response.json();",
-                  "    pm.collectionVariables.set('commentId', json.comment.id);",
-                  "    console.log('✅ Đã lưu Comment ID:', json.comment.id);",
+                  "    if (json.comment && json.comment.id) {",
+                  "        pm.collectionVariables.set('commentId', json.comment.id);",
+                  "        console.log('✅ Đã lưu Comment ID:', json.comment.id);",
+                  "    }",
                   "}"
                 ],
                 "type": "text/javascript"
               }
             }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
-            },
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"content\": \"Mình vừa kiểm tra API và thấy phản hồi rất nhanh!\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/issues/{{issueId}}/comments",
-              "host": ["{{baseUrl}}"],
-              "path": ["issues", "{{issueId}}", "comments"]
-            }
-          }
+          ]
         },
         {
           "name": "Get Comments (Danh sách bình luận của Issue)",
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/issues/{{issueId}}/comments",
-              "host": ["{{baseUrl}}"],
-              "path": ["issues", "{{issueId}}", "comments"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "issues",
+                "{{issueId}}",
+                "comments"
+              ]
+            },
+            "description": "Lấy tất cả bình luận của một Issue kèm thông tin người viết."
           }
         },
         {
-          "name": "Update Comment (Sửa bình luận)",
+          "name": "Update Comment (Chỉnh sửa bình luận)",
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"content\": \"Mình vừa kiểm tra lại, cần bổ sung thêm caching nhé.\"\n}"
+              "raw": "{\n  \"content\": \"Kịch bản kiểm thử API đã chạy xong với 100% tỷ lệ Passed.\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/comments/{{commentId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["comments", "{{commentId}}"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments",
+                "{{commentId}}"
+              ]
+            },
+            "description": "Sửa nội dung bình luận cá nhân đã viết."
           }
         },
         {
@@ -682,15 +1538,2708 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
             },
             "method": "DELETE",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/comments/{{commentId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["comments", "{{commentId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "comments",
+                "{{commentId}}"
+              ]
+            },
+            "description": "Xoá bình luận khỏi Issue."
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Checklists (Subtasks)",
+      "item": [
+        {
+          "name": "Add Checklist Item (Thêm việc con vào Issue)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Viết kịch bản kiểm thử chức năng hoàn tiền VNPay\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/issues/{{issueId}}/checklist",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "issues",
+                "{{issueId}}",
+                "checklist"
+              ]
+            },
+            "description": "Tạo một mục việc con (checklist item) trong Issue và lưu checklistItemId."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.item && json.item.id) {",
+                  "        pm.collectionVariables.set('checklistItemId', json.item.id);",
+                  "        console.log('✅ Đã lưu Checklist Item ID:', json.item.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
             }
+          ]
+        },
+        {
+          "name": "Update Checklist Item (Đánh dấu hoàn thành / Đổi tên)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Viết kịch bản kiểm thử chức năng hoàn tiền VNPay (Đã xong)\",\n  \"isCompleted\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/checklist/{{checklistItemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "checklist",
+                "{{checklistItemId}}"
+              ]
+            },
+            "description": "Đánh dấu việc con đã hoàn thành (isCompleted: true) hoặc sửa tiêu đề việc con."
+          }
+        },
+        {
+          "name": "Delete Checklist Item (Xoá việc con)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/checklist/{{checklistItemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "checklist",
+                "{{checklistItemId}}"
+              ]
+            },
+            "description": "Xoá một mục checklist ra khỏi công việc."
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Attachments",
+      "item": [
+        {
+          "name": "Upload Attachment (Tải tệp đính kèm lên Issue)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "Chọn tệp hình ảnh, tài liệu hoặc log lỗi để tải lên"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/issues/{{issueId}}/attachments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "issues",
+                "{{issueId}}",
+                "attachments"
+              ]
+            },
+            "description": "Tải tệp đính kèm (ảnh bằng chứng lỗi, tài liệu SRS, file log...) lên Issue sử dụng Multipart Form-Data."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.attachment && json.attachment.id) {",
+                  "        pm.collectionVariables.set('attachmentId', json.attachment.id);",
+                  "        console.log('✅ Đã lưu Attachment ID:', json.attachment.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Attachment (Xoá tệp đính kèm)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/attachments/{{attachmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attachments",
+                "{{attachmentId}}"
+              ]
+            },
+            "description": "Xoá tệp đính kèm khỏi hệ thống."
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Notifications",
+      "item": [
+        {
+          "name": "Get My Notifications (Danh sách thông báo của tôi)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications?page=1&limit=20&unread=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "unread",
+                  "value": "false"
+                }
+              ]
+            },
+            "description": "Lấy danh sách thông báo của người dùng hiện tại kèm số lượng chưa đọc (unreadCount)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.notifications && json.notifications.length > 0) {",
+                  "        pm.collectionVariables.set('notificationId', json.notifications[0].id);",
+                  "        console.log('✅ Đã lưu Notification ID mẫu:', json.notifications[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mark Notification As Read (Đánh dấu đã đọc 1 thông báo)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/{{notificationId}}/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "{{notificationId}}",
+                "read"
+              ]
+            },
+            "description": "Đánh dấu một thông báo cụ thể là đã đọc."
+          }
+        },
+        {
+          "name": "Mark All As Read (Đánh dấu tất cả thông báo đã đọc)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/read-all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "read-all"
+              ]
+            },
+            "description": "Đánh dấu toàn bộ thông báo chưa đọc thành đã đọc."
+          }
+        },
+        {
+          "name": "Delete Notification (Xoá 1 thông báo)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/{{notificationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "{{notificationId}}"
+              ]
+            },
+            "description": "Xoá một thông báo khỏi hòm thư thông báo."
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. QA - Test Folders (Repository)",
+      "item": [
+        {
+          "name": "Get Test Folders (Lấy cây thư mục ca kiểm thử)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-folders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-folders"
+              ]
+            },
+            "description": "Lấy toàn bộ cây thư mục quản lý Test Repository của dự án kèm số lượng test case trong mỗi folder."
+          }
+        },
+        {
+          "name": "Create Test Folder (Tạo thư mục ca kiểm thử mới)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Module Thanh toán & Giỏ hàng\",\n  \"description\": \"Chứa các kịch bản kiểm thử API và UI cho thanh toán VNPay, MoMo, Visa\",\n  \"parentId\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-folders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-folders"
+              ]
+            },
+            "description": "Tạo thư mục mới trong kho lưu trữ ca kiểm thử (hỗ trợ phân cấp cha/con với parentId)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.folder && json.folder.id) {",
+                  "        pm.collectionVariables.set('testFolderId', json.folder.id);",
+                  "        console.log('✅ Đã lưu Test Folder ID:', json.folder.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Test Folder (Sửa thông tin / Di chuyển thư mục)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Module Thanh toán & Checkout (Updated)\",\n  \"description\": \"Cập nhật bổ sung luồng hoàn tiền và đổi trả hàng\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-folders/{{testFolderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-folders",
+                "{{testFolderId}}"
+              ]
+            },
+            "description": "Cập nhật tên, mô tả hoặc thay đổi vị trí order/thư mục cha."
+          }
+        },
+        {
+          "name": "Delete Test Folder (Xoá thư mục kiểm thử)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-folders/{{testFolderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-folders",
+                "{{testFolderId}}"
+              ]
+            },
+            "description": "Xoá một thư mục kiểm thử khỏi dự án."
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. QA - Test Cases (Manual & BDD)",
+      "item": [
+        {
+          "name": "Get Test Cases (Danh sách ca kiểm thử)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-cases?folderId=all&type=MANUAL&priority=HIGH",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-cases"
+              ],
+              "query": [
+                {
+                  "key": "folderId",
+                  "value": "all"
+                },
+                {
+                  "key": "type",
+                  "value": "MANUAL"
+                },
+                {
+                  "key": "priority",
+                  "value": "HIGH"
+                }
+              ]
+            },
+            "description": "Lấy danh sách các ca kiểm thử có hỗ trợ lọc theo thư mục (folderId), phân loại (type: MANUAL/BDD), độ ưu tiên (priority: LOW/MEDIUM/HIGH/CRITICAL) hoặc tìm kiếm theo từ khoá."
+          }
+        },
+        {
+          "name": "Create Manual Test Case (Tạo ca kiểm thử thủ công với Steps)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Kiểm tra thanh toán thành công với thẻ ATM nội địa\",\n  \"description\": \"Xác thực luồng trừ tiền và cập nhật trạng thái đơn hàng sang PAID\",\n  \"type\": \"MANUAL\",\n  \"priority\": \"HIGH\",\n  \"folderId\": \"{{testFolderId}}\",\n  \"preconditions\": \"Người dùng đã có tài khoản, giỏ hàng có ít nhất 1 sản phẩm\",\n  \"steps\": [\n    {\n      \"order\": 1,\n      \"action\": \"Truy cập giỏ hàng và nhấn 'Tiến hành thanh toán'\",\n      \"testData\": \"Giỏ hàng có sản phẩm ID: PRD-01\",\n      \"expectedResult\": \"Hệ thống hiển thị màn hình chọn phương thức thanh toán\"\n    },\n    {\n      \"order\": 2,\n      \"action\": \"Chọn cổng 'VNPay - Thẻ ATM' và nhấn 'Xác nhận'\",\n      \"testData\": \"Chọn ngân hàng NCB\",\n      \"expectedResult\": \"Chuyển hướng an toàn sang cổng thanh toán đối tác\"\n    },\n    {\n      \"order\": 3,\n      \"action\": \"Nhập thông tin thẻ mẫu và mã OTP xác nhận\",\n      \"testData\": \"Số thẻ: 9704198526191432198, OTP: 123456\",\n      \"expectedResult\": \"Thanh toán thành công, đơn hàng chuyển sang trạng thái ĐÃ THANH TOÁN\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-cases",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-cases"
+              ]
+            },
+            "description": "Tạo ca kiểm thử thủ công với từng bước kiểm thử (Action, Test Data, Expected Result). Tự động sinh mã Key chuẩn (VD: ECO-TC-1)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.testCase && json.testCase.id) {",
+                  "        pm.collectionVariables.set('testCaseId', json.testCase.id);",
+                  "        console.log('✅ Đã lưu Test Case ID:', json.testCase.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create BDD Gherkin Test Case (Tạo ca kiểm thử Cucumber BDD)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Xác thực đăng nhập với tài khoản hợp lệ\",\n  \"description\": \"Kịch bản BDD kiểm tra luồng login\",\n  \"type\": \"BDD\",\n  \"priority\": \"CRITICAL\",\n  \"folderId\": \"{{testFolderId}}\",\n  \"gherkinContent\": \"Feature: Đăng nhập người dùng\\n  Scenario: Đăng nhập thành công với email và mật khẩu đúng\\n    Given Người dùng đang ở trang đăng nhập\\n    When Người dùng nhập email \\\"user@trera.com\\\" và mật khẩu \\\"Password@123\\\"\\n    And Nhấn nút \\\"Đăng nhập\\\"\\n    Then Hệ thống chuyển hướng vào trang chủ Dashboard\\n    And Hiển thị thông báo \\\"Chào mừng trở lại!\\\"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-cases",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-cases"
+              ]
+            },
+            "description": "Tạo ca kiểm thử chuẩn BDD Gherkin (Given - When - Then)."
+          }
+        },
+        {
+          "name": "Get Test Case Detail (Chi tiết ca kiểm thử)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-cases/{{testCaseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-cases",
+                "{{testCaseId}}"
+              ]
+            },
+            "description": "Lấy chi tiết đầy đủ của một ca kiểm thử kèm toàn bộ các bước (Steps) và Shared Steps liên kết."
+          }
+        },
+        {
+          "name": "Update Test Case (Chỉnh sửa ca kiểm thử)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Kiểm tra thanh toán thành công với thẻ ATM nội địa (Cập nhật)\",\n  \"priority\": \"CRITICAL\",\n  \"description\": \"Bổ sung kiểm tra gửi email hoá đơn tự động cho khách hàng sau khi thanh toán\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-cases/{{testCaseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-cases",
+                "{{testCaseId}}"
+              ]
+            },
+            "description": "Cập nhật tiêu đề, độ ưu tiên, kịch bản gherkin, các bước kiểm thử của ca test."
+          }
+        },
+        {
+          "name": "Export Test Cases - JSON (Xuất danh sách test case sang JSON)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-cases/export?format=json",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-cases",
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "json"
+                }
+              ]
+            },
+            "description": "Xuất toàn bộ kho ca kiểm thử của dự án dưới định dạng chuẩn JSON để sao lưu hoặc chuyển giao."
+          }
+        },
+        {
+          "name": "Export Test Cases - CSV (Xuất danh sách test case sang CSV)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-cases/export?format=csv",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-cases",
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "csv"
+                }
+              ]
+            },
+            "description": "Xuất dữ liệu test cases sang định dạng file CSV có chứa BOM UTF-8 xem trực tiếp trên Microsoft Excel."
+          }
+        },
+        {
+          "name": "Import Test Cases (Nhập ca kiểm thử từ JSON / CSV / Gherkin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"format\": \"json\",\n  \"folderId\": \"{{testFolderId}}\",\n  \"content\": [\n    {\n      \"title\": \"Kiểm tra validation định dạng email khi đăng ký\",\n      \"type\": \"MANUAL\",\n      \"priority\": \"HIGH\",\n      \"preconditions\": \"Chưa có tài khoản với email này\",\n      \"steps\": [\n        {\n          \"order\": 1,\n          \"action\": \"Nhập email không đúng cú pháp 'invalid-email'\",\n          \"expectedResult\": \"Hiển thị thông báo lỗi 'Email không hợp lệ'\"\n        }\n      ]\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-cases/import",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-cases",
+                "import"
+              ]
+            },
+            "description": "Nhập hàng loạt ca kiểm thử vào kho lưu trữ từ định dạng JSON, CSV hoặc tệp Cucumber Gherkin (.feature)."
+          }
+        },
+        {
+          "name": "Delete Test Case (Xoá ca kiểm thử)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-cases/{{testCaseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-cases",
+                "{{testCaseId}}"
+              ]
+            },
+            "description": "Xoá một ca kiểm thử khỏi dự án."
+          }
+        }
+      ]
+    },
+    {
+      "name": "12. QA - Test Shared Steps",
+      "item": [
+        {
+          "name": "Get Shared Steps (Danh sách bước dùng chung)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-shared-steps",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-shared-steps"
+              ]
+            },
+            "description": "Lấy tất cả các bước dùng chung (Shared Steps) đã được định nghĩa trong dự án để tái sử dụng giữa nhiều Test Cases."
+          }
+        },
+        {
+          "name": "Create Shared Step (Tạo bước dùng chung mới)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Đăng nhập tài khoản với quyền Quản trị viên (Admin)\",\n  \"action\": \"Mở trang đăng nhập, điền tài khoản admin@trera.com và mật khẩu, nhấn Đăng nhập\",\n  \"testData\": \"admin@trera.com / password123\",\n  \"expectedResult\": \"Hệ thống đăng nhập thành công và chuyển vào trang Quản trị\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-shared-steps",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-shared-steps"
+              ]
+            },
+            "description": "Tạo bước kiểm thử dùng chung để tránh trùng lặp mô tả các bước phổ biến như Đăng nhập, Thêm giỏ hàng..."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.sharedStep && json.sharedStep.id) {",
+                  "        pm.collectionVariables.set('sharedStepId', json.sharedStep.id);",
+                  "        console.log('✅ Đã lưu Shared Step ID:', json.sharedStep.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Shared Step (Sửa bước dùng chung)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Đăng nhập tài khoản với quyền Quản trị viên (Cập nhật)\",\n  \"action\": \"Mở trang đăng nhập, nhập thông tin Admin và xác thực OTP 2FA\",\n  \"expectedResult\": \"Đăng nhập thành công có kiểm tra bảo mật OTP\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-shared-steps/{{sharedStepId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-shared-steps",
+                "{{sharedStepId}}"
+              ]
+            },
+            "description": "Cập nhật nội dung bước dùng chung. Mọi ca test đang liên kết sẽ tự động nhận cập nhật mới."
+          }
+        },
+        {
+          "name": "Delete Shared Step (Xoá bước dùng chung)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-shared-steps/{{sharedStepId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-shared-steps",
+                "{{sharedStepId}}"
+              ]
+            },
+            "description": "Xoá một bước dùng chung."
+          }
+        }
+      ]
+    },
+    {
+      "name": "13. QA - Test Sets (Suites)",
+      "item": [
+        {
+          "name": "Get Test Sets (Danh sách bộ ca kiểm thử - Suites)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-sets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-sets"
+              ]
+            },
+            "description": "Lấy danh sách tất cả các Test Sets (bộ ca kiểm thử) của dự án kèm số lượng ca test trong mỗi bộ."
+          }
+        },
+        {
+          "name": "Create Test Set (Tạo bộ kiểm thử mới)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Regression Test Suite - Module Thanh toán\",\n  \"description\": \"Tập hợp các ca kiểm thử hồi quy cho toàn bộ cổng thanh toán và giao dịch trực tuyến\",\n  \"testCaseIds\": [\n    \"{{testCaseId}}\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-sets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-sets"
+              ]
+            },
+            "description": "Tạo một Test Set (Suite) mới để nhóm các test case có cùng mục tiêu hoặc tính năng."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.testSet && json.testSet.id) {",
+                  "        pm.collectionVariables.set('testSetId', json.testSet.id);",
+                  "        console.log('✅ Đã lưu Test Set ID:', json.testSet.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Test Set Detail (Chi tiết Test Set)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-sets/{{testSetId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-sets",
+                "{{testSetId}}"
+              ]
+            },
+            "description": "Lấy chi tiết Test Set cùng danh sách toàn bộ các Test Cases thuộc bộ kiểm thử này."
+          }
+        },
+        {
+          "name": "Update Test Set (Sửa tên & mô tả bộ kiểm thử)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Regression Test Suite - Module Thanh toán (Updated)\",\n  \"description\": \"Bổ sung kiểm thử chịu tải và các trường hợp lỗi mạng ngoại biên\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-sets/{{testSetId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-sets",
+                "{{testSetId}}"
+              ]
+            },
+            "description": "Chỉnh sửa tên và mô tả của Test Set."
+          }
+        },
+        {
+          "name": "Add Cases to Test Set (Thêm các ca test vào Set)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"testCaseIds\": [\n    \"{{testCaseId}}\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-sets/{{testSetId}}/cases",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-sets",
+                "{{testSetId}}",
+                "cases"
+              ]
+            },
+            "description": "Thêm danh sách các ca kiểm thử vào bộ Test Set."
+          }
+        },
+        {
+          "name": "Remove Case from Test Set (Gỡ ca test khỏi Set)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-sets/{{testSetId}}/cases/{{testCaseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-sets",
+                "{{testSetId}}",
+                "cases",
+                "{{testCaseId}}"
+              ]
+            },
+            "description": "Gỡ một ca kiểm thử khỏi bộ Test Set mà không xoá ca kiểm thử gốc trong kho."
+          }
+        },
+        {
+          "name": "Delete Test Set (Xoá Test Set)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-sets/{{testSetId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-sets",
+                "{{testSetId}}"
+              ]
+            },
+            "description": "Xoá Test Set khỏi dự án."
+          }
+        }
+      ]
+    },
+    {
+      "name": "14. QA - Test Plans (Phases & Cycles)",
+      "item": [
+        {
+          "name": "Get Test Plans (Danh sách Kế hoạch kiểm thử)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-plans?status=DRAFT",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-plans"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "DRAFT"
+                }
+              ]
+            },
+            "description": "Lấy danh sách các Kế hoạch kiểm thử kèm chỉ số tiến độ tự động (Passed %, Failed %, Blocked %, Completion %)."
+          }
+        },
+        {
+          "name": "Create Test Plan (Tạo Kế hoạch kiểm thử mới)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Kế hoạch kiểm thử Release Version 1.0\",\n  \"description\": \"Kiểm tra toàn diện chức năng và tích hợp trước khi triển khai sản phẩm\",\n  \"status\": \"DRAFT\",\n  \"dueDate\": \"2026-10-20T23:59:59.000Z\",\n  \"sprintId\": \"{{sprintId}}\",\n  \"testCaseIds\": [\n    \"{{testCaseId}}\"\n  ],\n  \"testSetIds\": [\n    \"{{testSetId}}\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-plans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-plans"
+              ]
+            },
+            "description": "Tạo kế hoạch kiểm thử liên kết với Sprint và tự động gom các ca test từ danh sách testCaseIds hoặc testSetIds."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.testPlan && json.testPlan.id) {",
+                  "        pm.collectionVariables.set('testPlanId', json.testPlan.id);",
+                  "        console.log('✅ Đã lưu Test Plan ID:', json.testPlan.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Test Plan Detail (Chi tiết Kế hoạch kiểm thử)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-plans/{{testPlanId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-plans",
+                "{{testPlanId}}"
+              ]
+            },
+            "description": "Xem chi tiết Kế hoạch kiểm thử kèm danh sách các ca test và metrics thống kê kết quả."
+          }
+        },
+        {
+          "name": "Update Test Plan (Sửa kế hoạch kiểm thử)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Kế hoạch kiểm thử Release Version 1.0 (In Progress)\",\n  \"status\": \"IN_PROGRESS\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-plans/{{testPlanId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-plans",
+                "{{testPlanId}}"
+              ]
+            },
+            "description": "Cập nhật trạng thái (DRAFT, IN_PROGRESS, COMPLETED, ARCHIVED), hạn hoàn thành hoặc mô tả của Plan."
+          }
+        },
+        {
+          "name": "Add Cases to Plan (Thêm ca test vào Kế hoạch)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"testCaseIds\": [\n    \"{{testCaseId}}\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-plans/{{testPlanId}}/cases",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-plans",
+                "{{testPlanId}}",
+                "cases"
+              ]
+            },
+            "description": "Bổ sung thêm các ca kiểm thử vào Kế hoạch kiểm thử hiện tại."
+          }
+        },
+        {
+          "name": "Update Case Status in Plan (Ghi nhận kết quả test trong Plan)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PASSED\",\n  \"note\": \"Đã kiểm tra thành công tất cả kịch bản\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-plans/{{testPlanId}}/cases/{{testCaseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-plans",
+                "{{testPlanId}}",
+                "cases",
+                "{{testCaseId}}"
+              ]
+            },
+            "description": "Ghi nhận trạng thái kiểm thử cho 1 ca test trong Plan (PASSED, FAILED, BLOCKED, SKIPPED, UNTESTED). Tự động cập nhật lại các chỉ số tổng thể của Plan."
+          }
+        },
+        {
+          "name": "Remove Case from Plan (Gỡ ca test khỏi Kế hoạch)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-plans/{{testPlanId}}/cases/{{testCaseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-plans",
+                "{{testPlanId}}",
+                "cases",
+                "{{testCaseId}}"
+              ]
+            },
+            "description": "Gỡ một ca kiểm thử ra khỏi Kế hoạch kiểm thử."
+          }
+        },
+        {
+          "name": "Delete Test Plan (Xoá Kế hoạch kiểm thử)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-plans/{{testPlanId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-plans",
+                "{{testPlanId}}"
+              ]
+            },
+            "description": "Xoá Kế hoạch kiểm thử khỏi dự án."
+          }
+        }
+      ]
+    },
+    {
+      "name": "15. QA - Test Environments",
+      "item": [
+        {
+          "name": "Get Environments (Danh sách môi trường kiểm thử)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-environments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-environments"
+              ]
+            },
+            "description": "Lấy danh sách các môi trường kiểm thử của dự án (Tự động khởi tạo Staging, Web, Mobile, API nếu chưa có)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.environments && json.environments.length > 0) {",
+                  "        pm.collectionVariables.set('environmentId', json.environments[0].id);",
+                  "        console.log('✅ Đã lưu environmentId:', json.environments[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Environment (Tạo môi trường kiểm thử mới)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Production Mirror (AWS EKS)\",\n  \"category\": \"Web\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-environments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-environments"
+              ]
+            },
+            "description": "Tạo môi trường kiểm thử mới (Web, Mobile, API, Desktop...)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.environment && json.environment.id) {",
+                  "        pm.collectionVariables.set('environmentId', json.environment.id);",
+                  "        console.log('✅ Đã lưu Test Environment ID mới:', json.environment.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Environment (Xoá môi trường kiểm thử)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-environments/{{environmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-environments",
+                "{{environmentId}}"
+              ]
+            },
+            "description": "Xoá một môi trường kiểm thử khỏi dự án."
+          }
+        }
+      ]
+    },
+    {
+      "name": "16. QA - Test Runs & Execution Runner",
+      "item": [
+        {
+          "name": "Get Test Runs (Danh sách các đợt thực thi kiểm thử)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-runs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-runs"
+              ]
+            },
+            "description": "Lấy danh sách các đợt thực thi (Test Runs) kèm chỉ số tiến độ chi tiết (Passed, Failed, Blocked, Untested...)."
+          }
+        },
+        {
+          "name": "Create Test Run (Tạo đợt thực thi kiểm thử)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Đợt chạy kiểm thử E2E Sprint 1 - Build #105\",\n  \"description\": \"Thực thi toàn bộ các ca kiểm thử thanh toán trên môi trường Staging\",\n  \"planId\": \"{{testPlanId}}\",\n  \"environmentId\": \"{{environmentId}}\",\n  \"testCaseIds\": [\n    \"{{testCaseId}}\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-runs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-runs"
+              ]
+            },
+            "description": "Khởi tạo một đợt chạy kiểm thử mới (Test Run). Tự động clone các test cases và bước thành danh sách kết quả UNTESTED sẵn sàng chạy."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.testRun && json.testRun.id) {",
+                  "        pm.collectionVariables.set('testRunId', json.testRun.id);",
+                  "        console.log('✅ Đã lưu Test Run ID:', json.testRun.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Test Run Detail (Chi tiết đợt chạy & Kết quả từng ca test)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-runs/{{testRunId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-runs",
+                "{{testRunId}}"
+              ]
+            },
+            "description": "Lấy chi tiết toàn bộ đợt chạy kiểm thử, danh sách ca kiểm thử, kết quả từng bước và các lỗi liên kết."
+          }
+        },
+        {
+          "name": "Update Test Run (Cập nhật trạng thái đợt chạy)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"COMPLETED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-runs/{{testRunId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-runs",
+                "{{testRunId}}"
+              ]
+            },
+            "description": "Đóng hoặc cập nhật trạng thái của đợt chạy (IN_PROGRESS, COMPLETED, ABORTED)."
+          }
+        },
+        {
+          "name": "Execute Test Case & Steps (Thực thi ca kiểm thử từng bước)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"FAILED\",\n  \"actualResult\": \"Cổng thanh toán phản hồi mã lỗi 500 Internal Server Error tại bước 2\",\n  \"elapsedSeconds\": 45,\n  \"stepResults\": [\n    {\n      \"stepOrder\": 1,\n      \"status\": \"PASSED\",\n      \"actualResult\": \"Màn hình giỏ hàng hiển thị bình thường\"\n    },\n    {\n      \"stepOrder\": 2,\n      \"status\": \"FAILED\",\n      \"actualResult\": \"Nút chọn NCB bị đơ, console báo lỗi timeout kết nối\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-runs/{{testRunId}}/results/{{testCaseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-runs",
+                "{{testRunId}}",
+                "results",
+                "{{testCaseId}}"
+              ]
+            },
+            "description": "Ghi nhận kết quả kiểm thử thực tế của ca test và từng bước (PASSED, FAILED, BLOCKED, SKIPPED). Hỗ trợ đo thời gian chạy (elapsedSeconds)."
+          }
+        },
+        {
+          "name": "1-Click Defect Logging (Báo lỗi Bug ngay từ Test Runner)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"[Bug][Test Fail] Không thể thanh toán qua cổng NCB\",\n  \"priority\": \"URGENT\",\n  \"sprintId\": \"{{sprintId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-runs/{{testRunId}}/results/{{testCaseId}}/defect",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-runs",
+                "{{testRunId}}",
+                "results",
+                "{{testCaseId}}",
+                "defect"
+              ]
+            },
+            "description": "Tính năng 1-Click Defect Logging độc quyền của Trera: Tự động trích xuất các bước kiểm thử, kỳ vọng và kết quả lỗi thực tế để tạo ngay một Issue loại BUG trên bảng Kanban và liên kết hai chiều với Test Case."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.defect && json.defect.id) {",
+                  "        pm.collectionVariables.set('issueId', json.defect.id);",
+                  "        console.log('✅ Đã tự động tạo Bug ID:', json.defect.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Upload Step Attachment (Tải ảnh bằng chứng lỗi cho bước test)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "Tải ảnh chụp màn hình bằng chứng lỗi tại bước kiểm thử này"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-runs/{{testRunId}}/results/{{testCaseId}}/steps/:stepId/attachment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-runs",
+                "{{testRunId}}",
+                "results",
+                "{{testCaseId}}",
+                "steps",
+                ":stepId",
+                "attachment"
+              ]
+            },
+            "description": "Tải ảnh chụp màn hình bằng chứng lỗi (screenshot / video / log) đính kèm trực tiếp vào từng bước kiểm thử bị hỏng."
+          }
+        },
+        {
+          "name": "Delete Test Run (Xoá đợt chạy kiểm thử)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/test-runs/{{testRunId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "test-runs",
+                "{{testRunId}}"
+              ]
+            },
+            "description": "Xoá một đợt chạy kiểm thử khỏi hệ thống."
+          }
+        }
+      ]
+    },
+    {
+      "name": "17. QA - Traceability Matrix & Coverage",
+      "item": [
+        {
+          "name": "Get Traceability Matrix (Ma trận truy vết 3 chiều)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/traceability?sprintId=all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "traceability"
+              ],
+              "query": [
+                {
+                  "key": "sprintId",
+                  "value": "all"
+                }
+              ]
+            },
+            "description": "Lấy Ma trận truy vết chất lượng 3 chiều (Requirements ↔ Test Cases ↔ Defects) cùng bộ chỉ số Test Coverage % và Quality Health Status (PASSED, FAILED, BLOCKED, NO_TESTS, UNTESTED)."
+          }
+        },
+        {
+          "name": "Link Test Cases to Requirement (Gắn ca test vào Yêu cầu)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"issueId\": \"{{issueId}}\",\n  \"testCaseIds\": [\n    \"{{testCaseId}}\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/traceability/link",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "traceability",
+                "link"
+              ]
+            },
+            "description": "Liên kết một hoặc nhiều Test Cases vào một User Story / Requirement để theo dõi độ bao phủ kiểm thử."
+          }
+        },
+        {
+          "name": "Unlink Test Case from Requirement (Huỷ liên kết ca test)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"issueId\": \"{{issueId}}\",\n  \"testCaseId\": \"{{testCaseId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/traceability/link",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "traceability",
+                "link"
+              ]
+            },
+            "description": "Huỷ liên kết giữa ca kiểm thử và yêu cầu nghiệp vụ."
+          }
+        }
+      ]
+    },
+    {
+      "name": "18. QA - Dashboard & Quality Metrics",
+      "item": [
+        {
+          "name": "Get QA Metrics (Báo cáo tổng quan chất lượng dự án)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/qa-metrics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "qa-metrics"
+              ]
+            },
+            "description": "Lấy số liệu tổng hợp chuyên sâu cho QA Dashboard: Phân bổ test case theo thư mục, theo độ ưu tiên, loại test (Manual vs BDD), tỷ lệ Pass Rate, Defect Density và tiến độ kiểm thử."
+          }
+        },
+        {
+          "name": "Get Flaky Tests Report (Báo cáo ca kiểm thử chập chờn - Flaky)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/qa-metrics/flaky-tests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "qa-metrics",
+                "flaky-tests"
+              ]
+            },
+            "description": "Phát hiện các ca kiểm thử không ổn định (lúc Pass lúc Fail qua các lần chạy) để QA tối ưu chất lượng kiểm thử tự động."
+          }
+        }
+      ]
+    },
+    {
+      "name": "19. QA & CI/CD - API Tokens",
+      "item": [
+        {
+          "name": "Get API Tokens (Danh sách API Token của dự án)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/tokens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "tokens"
+              ]
+            },
+            "description": "Lấy danh sách các API Tokens đã tạo cho dự án phục vụ tích hợp CI/CD (GitHub Actions, GitLab CI, Jenkins)."
+          }
+        },
+        {
+          "name": "Create CI/CD API Token (Tạo token mới cho Pipeline)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"GitHub Actions CI Runner Token\",\n  \"role\": \"AUTOMATION\",\n  \"expiresInDays\": 90\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/tokens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "tokens"
+              ]
+            },
+            "description": "Tạo API Token bảo mật định dạng tre_live_... dùng để xác thực các request tự động từ pipeline CI/CD mà không cần đăng nhập user."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.tokenRecord && json.tokenRecord.id) {",
+                  "        pm.collectionVariables.set('apiTokenId', json.tokenRecord.id);",
+                  "    }",
+                  "    if (json.token) {",
+                  "        pm.collectionVariables.set('ciToken', json.token);",
+                  "        console.log('✅ Đã lưu CI/CD Token:', json.token);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Revoke API Token (Thu hồi / Xoá API Token)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/tokens/{{apiTokenId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "tokens",
+                "{{apiTokenId}}"
+              ]
+            },
+            "description": "Thu hồi và xoá quyền truy cập của một API Token."
+          }
+        }
+      ]
+    },
+    {
+      "name": "20. QA & CI/CD - Automation Results",
+      "item": [
+        {
+          "name": "Import JUnit XML Results (Đẩy kết quả kiểm thử tự động JUnit XML)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Trera-Api-Key",
+                "value": "{{ciToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"CI Automated Test Run - Build #204\",\n  \"autoLogBugs\": true,\n  \"createMissingCases\": true,\n  \"xmlContent\": \"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\\n<testsuites name=\\\"Jest Tests\\\" tests=\\\"2\\\" failures=\\\"1\\\" time=\\\"2.15\\\">\\n  <testsuite name=\\\"Authentication Test\\\" tests=\\\"2\\\" failures=\\\"1\\\" time=\\\"2.15\\\">\\n    <testcase classname=\\\"Auth\\\" name=\\\"User can login with valid credentials\\\" time=\\\"0.45\\\" />\\n    <testcase classname=\\\"Auth\\\" name=\\\"User cannot login with wrong password\\\" time=\\\"0.32\\\">\\n      <failure message=\\\"Expected 401 but received 500\\\">AssertionError: expected status 401</failure>\\n    </testcase>\\n  </testsuite>\\n</testsuites>\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/automation/junit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "automation",
+                "junit"
+              ]
+            },
+            "description": "Nhận kết quả kiểm thử tự động từ JUnit XML (Playwright, Cypress, Jest, PyTest, TestNG). Tự động tạo Test Run, cập nhật kết quả và tự động tạo Bug (nếu autoLogBugs = true)."
+          }
+        },
+        {
+          "name": "Import Cucumber JSON Results (Đẩy kết quả kiểm thử Cucumber BDD)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Trera-Api-Key",
+                "value": "{{ciToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cucumber BDD Nightly Run\",\n  \"autoLogBugs\": true,\n  \"createMissingCases\": true,\n  \"cucumberJson\": [\n    {\n      \"id\": \"login-feature\",\n      \"name\": \"User Login\",\n      \"elements\": [\n        {\n          \"id\": \"login-success\",\n          \"name\": \"Successful login with valid credentials\",\n          \"type\": \"scenario\",\n          \"steps\": [\n            {\n              \"name\": \"I open login page\",\n              \"result\": {\n                \"status\": \"passed\",\n                \"duration\": 1000000\n              }\n            },\n            {\n              \"name\": \"I enter valid credentials\",\n              \"result\": {\n                \"status\": \"passed\",\n                \"duration\": 2000000\n              }\n            }\n          ]\n        }\n      ]\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/automation/cucumber",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "automation",
+                "cucumber"
+              ]
+            },
+            "description": "Nhận kết quả kiểm thử tự động chuẩn Cucumber BDD JSON từ Behave, Cucumber-js, Cucumber-JVM."
+          }
+        },
+        {
+          "name": "Get Automation Summary (Tổng quan kết quả kiểm thử CI/CD)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/automation/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "automation",
+                "summary"
+              ]
+            },
+            "description": "Thống kê tổng số lần chạy CI, tổng số ca test tự động đã chạy, tỷ lệ Pass Rate chung và danh sách 10 đợt chạy CI gần nhất."
+          }
+        }
+      ]
+    },
+    {
+      "name": "21. Webhooks & Integrations",
+      "item": [
+        {
+          "name": "Get Webhooks (Danh sách Webhooks của dự án)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/webhooks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "webhooks"
+              ]
+            },
+            "description": "Lấy danh sách các Webhooks đã cấu hình trong dự án."
+          }
+        },
+        {
+          "name": "Create Webhook (Đăng ký Webhook mới)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Slack QA Notification Channel\",\n  \"url\": \"https://example.com/webhooks/slack-qa-channel\",\n  \"secret\": \"my_webhook_secret_key_123\",\n  \"events\": [\n    \"TEST_RUN_COMPLETED\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/webhooks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "webhooks"
+              ]
+            },
+            "description": "Đăng ký webhook để nhận thông báo HTTP POST khi đợt chạy kiểm thử hoàn tất (events: ['TEST_RUN_COMPLETED'])."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.webhook && json.webhook.id) {",
+                  "        pm.collectionVariables.set('webhookId', json.webhook.id);",
+                  "        console.log('✅ Đã lưu Webhook ID:', json.webhook.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Webhook (Cập nhật Webhook)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Slack QA Notification Channel (Active)\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/webhooks/{{webhookId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "webhooks",
+                "{{webhookId}}"
+              ]
+            },
+            "description": "Cập nhật tên, URL, secret hoặc bật/tắt (isActive) Webhook."
+          }
+        },
+        {
+          "name": "Test Webhook (Gửi ping kiểm tra kết nối Webhook)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/webhooks/{{webhookId}}/test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "webhooks",
+                "{{webhookId}}",
+                "test"
+              ]
+            },
+            "description": "Gửi một payload mẫu PING tới URL webhook để xác thực endpoint nhận có hoạt động bình thường hay không."
+          }
+        },
+        {
+          "name": "Delete Webhook (Xoá Webhook)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/webhooks/{{webhookId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "projects",
+                "{{projectId}}",
+                "webhooks",
+                "{{webhookId}}"
+              ]
+            },
+            "description": "Xoá một Webhook khỏi dự án."
           }
         }
       ]
