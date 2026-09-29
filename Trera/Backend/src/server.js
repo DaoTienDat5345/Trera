@@ -2,8 +2,10 @@ import http from "http";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import helmet from "helmet";
 import passport from "../config/passport.js";
 import { initSocket } from "../config/socket.js";
+import { globalLimiter } from "../middleware/rateLimiter.js";
 
 import AuthRouter from "./router/AuthRouter.js";
 import ProjectRouter from "./router/ProjectRouter.js";
@@ -33,12 +35,19 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 5001;
 
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 app.use(cors({
   origin: process.env.CLIENT_URL || "http://localhost:5173",
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 app.use(passport.initialize());
+
+// Global Rate Limiter for all /api endpoints
+app.use("/api", globalLimiter);
 
 // Phục vụ tệp tĩnh tải lên (Local fallback)
 app.use("/uploads", express.static(path.resolve("uploads")));

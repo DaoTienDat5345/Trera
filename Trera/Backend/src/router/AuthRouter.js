@@ -2,11 +2,12 @@ import express from "express";
 import { register, login, getMe, updateMe, changePassword, googleCallback } from "../../controllers/AuthController.js";
 import { protect } from "../../middleware/auth.js";
 import passport, { isGoogleConfigured } from "../../config/passport.js";
+import { authLimiter } from "../../middleware/rateLimiter.js";
 
 const router = express.Router();
 
-router.post("/register", register);
-router.post("/login", login);
+router.post("/register", authLimiter, register);
+router.post("/login", authLimiter, login);
 router.get("/me", protect, getMe);
 router.put("/me", protect, updateMe);
 router.put("/me/password", protect, changePassword);

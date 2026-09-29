@@ -21,6 +21,7 @@ import {
   checkProjectAdmin,
   checkProjectOwner,
 } from "../../middleware/projectAccess.js";
+import { inviteLimiter } from "../../middleware/rateLimiter.js";
 
 const router = express.Router();
 
@@ -37,7 +38,7 @@ router.put("/:id", checkProjectMember, checkProjectAdmin, updateProject);
 router.delete("/:id", checkProjectMember, checkProjectOwner, deleteProject);
 
 // Quản lý thành viên trong dự án
-router.post("/:id/members", checkProjectMember, checkProjectAdmin, sendInvitation);
+router.post("/:id/members", inviteLimiter, checkProjectMember, checkProjectAdmin, sendInvitation);
 router.put("/:id/members/:userId/role", checkProjectMember, checkProjectAdmin, updateMemberRole);
 router.delete("/:id/members/:userId", checkProjectMember, removeMember);
 
