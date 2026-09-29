@@ -1,0 +1,405 @@
+import { useState, useEffect, useCallback } from "react";
+import { useParams, Link } from "react-router";
+import { LayoutGrid, List, Users, Plus, Trash2, Crown, ArrowLeft, Mail, Shield, User2, X, BarChart3, GitMerge, Clock, Send, XCircle, FlaskConical, ClipboardList, GitFork, Eye, Cpu } from "lucide-react";
+import { toast } from "sonner";
+
+import Navbar from "../components/layout/Navbar";
+import UserAvatar from "../components/common/UserAvatar";
+import { useProjectStore } from "../store/projectStore";
+import type { ProjectMember } from "../store/projectStore";
+import { useAuthStore } from "../store/authStore";
+import { api } from "../lib/api";
+
+interface PendingInvitation {
+  id: string;
+  token: string;
+  status: string;
+  role: string;
+  expiresAt: string;
+  invitedUser: { id: string; name: string; email: string; avatar?: string };
+  invitedBy: { id: string; name: string };
+}
+
+const getRoleBadge = (role: string) => {
+  switch (role) {
+    case "ADMIN":
+      return { label: "Admin", bg: "bg-purple-100", text: "text-purple-700", icon: <Shield size={10} /> };
+    case "TEST_LEAD":
+      return { label: "QA Lead", bg: "bg-indigo-100", text: "text-indigo-700", icon: <Crown size={10} /> };
+    case "TESTER":
+      return { label: "Tester", bg: "bg-emerald-100", text: "text-emerald-700", icon: <FlaskConical size={10} /> };
+    case "VIEWER":
+      return { label: "Viewer", bg: "bg-slate-100", text: "text-slate-600", icon: <Eye size={10} /> };
+    default:
+      return { label: "Thành viên", bg: "bg-blue-100", text: "text-blue-700", icon: <User2 size={10} /> };
+  }
+};
+
+export default function ProjectMembersPage() {
+  const { id: projectId } = useParams<{ id: string }>();
+  const { user } = useAuthStore();
+  const { getProjectById, currentProject } = useProjectStore();
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<string>("TESTER");
+  const [isInviting, setIsInviting] = useState(false);
+  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
+
+  const load = useCallback(async () => {
+    if (!projectId) return;
+    setIsLoading(true);
+    await getProjectById(projectId);
+    setIsLoading(false);
+  }, [projectId]);
+
+  const loadInvitations = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const res = await api.get(`/projects/${projectId}/invitations`);
+      setPendingInvitations(res.data.invitations.filter((inv: PendingInvitation) => inv.status === "PENDING"));
+    } catch {
+      // ignore if not admin
+    }
+  }, [projectId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const isOwner = currentProject?.ownerId === user?.id;
+  const myRole = currentProject?.members?.find((m) => m.user.id === user?.id)?.role;
+  const canManage = isOwner || myRole === "ADMIN";
+
+  useEffect(() => {
+    if (canManage) loadInvitations();
+  }, [canManage, loadInvitations]);
+
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteEmail.trim() || !projectId) return;
+    setIsInviting(true);
+    try {
+      await api.post(`/projects/${projectId}/members`, { email: inviteEmail.trim(), role: inviteRole });
+      toast.success(`Đã gửi lời mời xác nhận tới ${inviteEmail}. Họ sẽ nhận được email để chấp nhận/từ chối.`);
+      setInviteEmail("");
+      setShowInviteModal(false);
+      await loadInvitations();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message ?? "Gửi lời mời thất bại");
+    } finally {
+      setIsInviting(false);
+    }
+  };
+
+  const handleRemove = async (memberId: string, memberName: string) => {
+    if (!projectId) return;
+    if (!confirm(`Xoá "${memberName}" khỏi dự án?`)) return;
+    try {
+      await api.delete(`/projects/${projectId}/members/${memberId}`);
+      toast.success(`Đã xoá ${memberName}`);
+      await load();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message ?? "Xoá thành viên thất bại");
+    }
+  };
+
+  const handleRoleChange = async (targetUserId: string, newRole: string) => {
+    if (!projectId) return;
+    try {
+      await api.put(`/projects/${projectId}/members/${targetUserId}/role`, { role: newRole });
+      toast.success("Đã cập nhật vai trò thành viên thành công");
+      await load();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message ?? "Không thể cập nhật vai trò");
+    }
+  };
+
+  const handleCancelInvitation = async (invitationId: string, userName: string) => {
+    if (!projectId) return;
+    if (!confirm(`Hủy lời mời đã gửi cho "${userName}"?`)) return;
+    try {
+      await api.delete(`/projects/${projectId}/invitations/${invitationId}`);
+      toast.success(`Đã hủy lời mời cho ${userName}`);
+      await loadInvitations();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message ?? "Hủy lời mời thất bại");
+    }
+  };
+
+  const members: ProjectMember[] = currentProject?.members ?? [];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50"><Navbar />
+        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+          <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <Navbar />
+
+      {/* Header */}
+      <div className="bg-white border-b border-slate-200 px-6 py-3">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-center gap-2 text-[12px] text-slate-400 mb-2">
+            <Link to="/projects" className="hover:text-slate-600 flex items-center gap-1"><ArrowLeft size={11} /> Dự án</Link>
+            <span>/</span>
+            <Link to={`/projects/${projectId}`} className="hover:text-slate-600">{currentProject?.name}</Link>
+            <span>/</span>
+            <span className="text-slate-600 font-medium">Thành viên</span>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <h1 className="text-[18px] font-bold text-slate-800">Thành viên dự án</h1>
+            <nav className="flex items-center gap-1 ml-4">
+              <Link to={`/projects/${projectId}`} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
+                <LayoutGrid size={14} /> Bảng
+              </Link>
+              <Link to={`/projects/${projectId}/sprints`} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
+                <List size={14} /> Backlog
+              </Link>
+              <Link to={`/projects/${projectId}/repository`} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
+                <FlaskConical size={14} /> Kho Test Case
+              </Link>
+              <Link to={`/projects/${projectId}/test-plans`} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
+                <ClipboardList size={14} /> Kế hoạch Test
+              </Link>
+              <Link to={`/projects/${projectId}/traceability`} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
+                <GitFork size={14} /> Ma trận truy vết
+              </Link>
+              <Link to={`/projects/${projectId}/automation`} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
+                <Cpu size={14} /> CI/CD & API
+              </Link>
+              <button className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] bg-indigo-50 text-indigo-700 rounded-lg font-medium">
+                <Users size={14} /> Thành viên
+              </button>
+              <Link to={`/projects/${projectId}/reports`} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
+                <BarChart3 size={14} /> Báo cáo
+              </Link>
+              <Link to={`/projects/${projectId}/activity`} className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-slate-500 hover:bg-slate-50 rounded-lg transition-colors">
+                <GitMerge size={14} /> Lịch sử
+              </Link>
+            </nav>
+            {canManage && (
+              <button
+                onClick={() => setShowInviteModal(true)}
+                className="ml-auto flex items-center gap-1.5 text-[13px] bg-indigo-600 text-white px-3 py-1.5 rounded-xl hover:bg-indigo-700 transition-colors font-semibold"
+              >
+                <Plus size={14} /> Mời thành viên
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 px-6 py-6">
+        <div className="max-w-3xl mx-auto">
+          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2">
+              <Users size={15} className="text-slate-400" />
+              <span className="text-[13px] font-semibold text-slate-600">{members.length} thành viên</span>
+            </div>
+
+            {members.length === 0 ? (
+              <div className="py-12 text-center text-[13px] text-slate-400 italic">Chưa có thành viên nào</div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {/* Owner first */}
+                {currentProject?.owner && (
+                  <div className="flex items-center gap-4 px-5 py-4">
+                    <UserAvatar name={currentProject.owner.name} size="md" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[14px] font-semibold text-slate-800 truncate">{currentProject.owner.name}</span>
+                        <span className="flex items-center gap-1 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">
+                          <Crown size={9} /> Owner
+                        </span>
+                        {currentProject.owner.id === user?.id && (
+                          <span className="text-[10px] text-slate-400">(Bạn)</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 mt-0.5 text-[12px] text-slate-400">
+                        <Mail size={11} /> {currentProject.owner.email}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Other members */}
+                {members.filter((m) => m.user.id !== currentProject?.ownerId).map((member) => {
+                  const badge = getRoleBadge(member.role);
+                  return (
+                    <div key={member.id} className="flex items-center gap-4 px-5 py-4 group hover:bg-slate-50/60 transition-colors">
+                      <UserAvatar name={member.user.name} size="md" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[14px] font-semibold text-slate-800 truncate">{member.user.name}</span>
+                          <span className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-bold ${badge.bg} ${badge.text}`}>
+                            {badge.icon}
+                            <span>{badge.label}</span>
+                          </span>
+                          {member.user.id === user?.id && (
+                            <span className="text-[10px] text-slate-400 font-medium">(Bạn)</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 mt-0.5 text-[12px] text-slate-400">
+                          <Mail size={11} /> {member.user.email}
+                        </div>
+                      </div>
+
+                      {/* Role selection dropdown when canManage */}
+                      {canManage && member.user.id !== user?.id && (
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={member.role}
+                            onChange={(e) => handleRoleChange(member.user.id, e.target.value)}
+                            className="text-[12px] font-semibold bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          >
+                            <option value="ADMIN">Admin</option>
+                            <option value="TEST_LEAD">QA Lead</option>
+                            <option value="TESTER">Tester</option>
+                            <option value="MEMBER">Thành viên</option>
+                            <option value="VIEWER">Viewer</option>
+                          </select>
+
+                          <button
+                            onClick={() => handleRemove(member.user.id, member.user.name)}
+                            className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                            title="Xoá khỏi dự án"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Pending Invitations */}
+          {canManage && pendingInvitations.length > 0 && (
+            <div className="mt-4 bg-white rounded-2xl border border-amber-200 overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-amber-100 flex items-center gap-2 bg-amber-50">
+                <Clock size={15} className="text-amber-500" />
+                <span className="text-[13px] font-semibold text-amber-700">{pendingInvitations.length} lời mời đang chờ xác nhận</span>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {pendingInvitations.map((inv) => (
+                  <div key={inv.id} className="flex items-center gap-4 px-5 py-3.5 group">
+                    <UserAvatar name={inv.invitedUser.name} size="md" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[14px] font-semibold text-slate-800 truncate">{inv.invitedUser.name}</span>
+                        <span className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${inv.role === "ADMIN" ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-600"}`}>
+                          {inv.role === "ADMIN" ? <><Shield size={9} /> Admin</> : <><User2 size={9} /> Thành viên</>}
+                        </span>
+                        <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">
+                          <Clock size={9} /> Đang chờ
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-0.5 text-[12px] text-slate-400">
+                        <span className="flex items-center gap-1"><Mail size={11} /> {inv.invitedUser.email}</span>
+                        <span className="flex items-center gap-1"><Send size={11} /> Mời bởi {inv.invitedBy.name}</span>
+                        <span>Hết hạn: {new Date(inv.expiresAt).toLocaleDateString("vi-VN")}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleCancelInvitation(inv.id, inv.invitedUser.name)}
+                      className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                      title="Hủy lời mời"
+                    >
+                      <XCircle size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Project info card */}
+          <div className="mt-4 bg-white rounded-2xl border border-slate-200 px-5 py-4">
+            <h3 className="text-[13px] font-semibold text-slate-600 mb-3">Thông tin dự án</h3>
+            <div className="grid grid-cols-2 gap-3 text-[13px]">
+              <div>
+                <span className="text-slate-400 block text-[11px] mb-0.5">Tên dự án</span>
+                <span className="text-slate-700 font-medium">{currentProject?.name}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[11px] mb-0.5">Mã dự án</span>
+                <span className="font-mono font-bold text-indigo-600">{currentProject?.key}</span>
+              </div>
+              {currentProject?.description && (
+                <div className="col-span-2">
+                  <span className="text-slate-400 block text-[11px] mb-0.5">Mô tả</span>
+                  <span className="text-slate-600">{currentProject.description}</span>
+                </div>
+              )}
+              <div>
+                <span className="text-slate-400 block text-[11px] mb-0.5">Ngày tạo</span>
+                <span className="text-slate-600">{currentProject?.createdAt ? new Date(currentProject.createdAt).toLocaleDateString("vi-VN") : "-"}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Invite Modal */}
+      {showInviteModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <div className="flex items-center gap-2">
+                <Users size={16} className="text-indigo-600" />
+                <span className="font-semibold text-slate-800">Gửi lời mời tham gia</span>
+              </div>
+              <button onClick={() => setShowInviteModal(false)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+            <form onSubmit={handleInvite} className="px-6 py-5 flex flex-col gap-4">
+              <div>
+                <label className="text-[12px] font-semibold text-slate-500 block mb-1.5">Địa chỉ email *</label>
+                <input
+                  type="email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  placeholder="email@example.com"
+                  required
+                  autoFocus
+                  className="w-full text-[14px] border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-400 text-slate-800 placeholder:text-slate-300"
+                />
+              </div>
+              <div>
+                <label className="text-[12px] font-semibold text-slate-500 block mb-1.5">Vai trò trong dự án</label>
+                <select
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value)}
+                  className="w-full text-[13px] font-semibold border border-slate-200 rounded-xl px-4 py-2.5 bg-white text-slate-800 focus:outline-none focus:border-indigo-400"
+                >
+                  <option value="TESTER">Tester (Kiểm thử viên - Tạo/sửa test case & chạy test)</option>
+                  <option value="TEST_LEAD">QA Lead (Quản lý kế hoạch kiểm thử & tokens)</option>
+                  <option value="ADMIN">Admin (Quản trị viên toàn quyền)</option>
+                  <option value="MEMBER">Thành viên (Lập trình viên / Thành viên)</option>
+                  <option value="VIEWER">Viewer (Chỉ xem báo cáo & dữ liệu test)</option>
+                </select>
+              </div>
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={() => setShowInviteModal(false)} className="flex-1 py-2.5 text-[13px] border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-colors">Huỷ</button>
+                <button type="submit" disabled={isInviting} className="flex-1 py-2.5 text-[13px] font-semibold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-60">
+                  {isInviting ? "Đang mời..." : "Gửi lời mời"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

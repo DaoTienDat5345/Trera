@@ -1,0 +1,790 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// USER
+// ─────────────────────────────────────────────
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String?            // Optional — null cho user đăng nhập qua Google
+  googleId  String?  @unique   // Google OAuth ID
+  avatar    String?            // URL ảnh từ Google
+
+  // Relations
+  ownedProjects        Project[]            @relation("ProjectOwner")
+  projectMembers       ProjectMember[]
+  reportedIssues       Issue[]              @relation("IssueReporter")
+  assignedIssues       IssueAssignee[]
+  comments             Comment[]
+  activities           Activity[]
+  notifications        Notification[]       @relation("UserNotifications")
+  actedNotifs          Notification[]       @relation("NotificationActor")
+  attachments          Attachment[]
+  sentInvitations      ProjectInvitation[]  @relation("InvitedBy")
+  receivedInvitations  ProjectInvitation[]  @relation("InvitedUser")
+  authoredTestCases    TestCase[]           @relation("TestCaseAuthor")
+  assignedTestRuns     TestRun[]            @relation("TestRunAssignee")
+  executedRunResults   TestRunResult[]      @relation("TestRunResultExecutor")
+  createdApiTokens     ApiToken[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// PROJECT
+// ─────────────────────────────────────────────
+model Project {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  key         String  @unique // e.g. "TRE" – prefix cho issue
+
+  // Relations
+  owner       User                @relation("ProjectOwner", fields: [ownerId], references: [id])
+  ownerId     String
+  members     ProjectMember[]
+  sprints     Sprint[]
+  issues      Issue[]
+  activities  Activity[]
+  invitations ProjectInvitation[]
+  testFolders TestFolder[]
+  testCases   TestCase[]
+  testSharedSteps TestSharedStep[]
+  testSets    TestSet[]
+  testPlans   TestPlan[]
+  testEnvironments TestEnvironment[]
+  testRuns    TestRun[]
+  apiTokens   ApiToken[]
+  webhooks    Webhook[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("projects")
+}
+
+// ─────────────────────────────────────────────
+// PROJECT MEMBER (join table Project ↔ User)
+// ─────────────────────────────────────────────
+model ProjectMember {
+  id   String            @id @default(cuid())
+  role ProjectMemberRole @default(MEMBER)
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId]) // mỗi user chỉ có 1 role trong 1 project
+  @@map("project_members")
+}
+
+enum ProjectMemberRole {
+  ADMIN
+  MEMBER
+  TEST_LEAD
+  TESTER
+  VIEWER
+}
+
+// ─────────────────────────────────────────────
+// SPRINT
+// ─────────────────────────────────────────────
+model Sprint {
+  id     String       @id @default(cuid())
+  name   String
+  goal   String?
+  status SprintStatus @default(PLANNING)
+
+  startDate DateTime?
+  endDate   DateTime?
+
+  // Relations
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  issues    Issue[]
+  testPlans TestPlan[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sprints")
+}
+
+enum SprintStatus {
+  PLANNING
+  ACTIVE
+  COMPLETED
+}
+
+// ─────────────────────────────────────────────
+// ISSUE
+// ─────────────────────────────────────────────
+model Issue {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  status      IssueStatus @default(TODO)
+  priority    Priority    @default(MEDIUM)
+  type        IssueType   @default(TASK)
+  order       Int         @default(0) // dùng cho kéo thả Kanban
+
+  dueDate     DateTime?
+  completedAt DateTime?
+
+  // Relations
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  sprint   Sprint? @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  sprintId String?
+
+  reporter   User   @relation("IssueReporter", fields: [reporterId], references: [id])
+  reporterId String
+
+  assignees      IssueAssignee[]
+  labels         IssueLabel[]
+  comments       Comment[]
+  activities     Activity[]
+  checklistItems ChecklistItem[]
+  attachments    Attachment[]
+  defectsFromTestRuns TestRunDefect[]
+  testCases      TestCaseIssue[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId, status])         // filter theo project + status (Kanban)
+  @@index([projectId, sprintId])       // filter theo sprint
+  @@index([projectId, priority])       // filter theo priority
+  @@map("issues")
+}
+
+enum IssueStatus {
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum IssueType {
+  BUG
+  FEATURE
+  TASK
+  IMPROVEMENT
+}
+
+// ─────────────────────────────────────────────
+// ISSUE ASSIGNEE (join table Issue ↔ User)
+// ─────────────────────────────────────────────
+model IssueAssignee {
+  issue   Issue  @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  issueId String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId  String
+
+  assignedAt DateTime @default(now())
+
+  @@id([issueId, userId]) // composite primary key
+  @@map("issue_assignees")
+}
+
+// ─────────────────────────────────────────────
+// ISSUE LABEL (join table Issue ↔ Label string)
+// ─────────────────────────────────────────────
+model IssueLabel {
+  id      String @id @default(cuid())
+  label   String // e.g. "bug", "urgent", "backend"
+
+  issue   Issue  @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  issueId String
+
+  @@unique([issueId, label]) // không trùng label trong 1 issue
+  @@index([issueId])
+  @@map("issue_labels")
+}
+
+// ─────────────────────────────────────────────
+// COMMENT
+// ─────────────────────────────────────────────
+model Comment {
+  id      String @id @default(cuid())
+  content String
+
+  issue   Issue  @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  issueId String
+
+  author   User   @relation(fields: [authorId], references: [id])
+  authorId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([issueId])
+  @@map("comments")
+}
+
+// ─────────────────────────────────────────────
+// ACTIVITY LOG
+// ─────────────────────────────────────────────
+model Activity {
+  id     String @id @default(cuid())
+  action String // "created_issue" | "changed_status" | "assigned" | "commented" | "sprint_completed" | ...
+
+  // Metadata dạng JSON linh hoạt: { from, to, value, ... }
+  metadata Json @default("{}")
+
+  // Relations
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  issue   Issue?  @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  issueId String?
+
+  actor   User   @relation(fields: [actorId], references: [id])
+  actorId String
+
+  createdAt DateTime @default(now())
+
+  @@index([projectId, createdAt(sort: Desc)]) // query activity log nhanh
+  @@index([issueId])
+  @@map("activities")
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATION (In-App)
+// ─────────────────────────────────────────────
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  title     String
+  message   String
+  link      String?          // URL tương đối, VD: "/projects/xxx"
+
+  isRead    Boolean          @default(false)
+
+  userId    String           // Người nhận thông báo
+  user      User             @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+
+  actorId   String?          // Người thực hiện hành động
+  actor     User?            @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  ISSUE_ASSIGNED
+  ISSUE_STATUS_CHANGED
+  COMMENT_ADDED
+  SPRINT_STARTED
+  SYSTEM
+}
+
+// ─────────────────────────────────────────────
+// CHECKLIST ITEM (Công việc con / Subtask)
+// ─────────────────────────────────────────────
+model ChecklistItem {
+  id          String   @id @default(cuid())
+  title       String
+  isCompleted Boolean  @default(false)
+  order       Int      @default(0)
+
+  issue       Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  issueId     String
+
+  attachments Attachment[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([issueId])
+  @@map("checklist_items")
+}
+
+// ─────────────────────────────────────────────
+// ATTACHMENT (Tệp / Ảnh đính kèm)
+// ─────────────────────────────────────────────
+model Attachment {
+  id              String         @id @default(cuid())
+  filename        String         // Tên file lưu trữ trên disk hoặc public_id Cloudinary
+  originalName    String         // Tên file gốc do người dùng tải lên
+  mimeType        String         // Loại MIME (image/png, application/pdf,...)
+  size            Int            // Dung lượng (bytes)
+  url             String         // URL công khai (Cloudinary CDN URL hoặc /uploads/...)
+  publicId        String?        // Cloudinary public_id (để hỗ trợ xoá từ xa trên Cloud)
+
+  issue           Issue          @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  issueId         String
+
+  checklistItem   ChecklistItem? @relation(fields: [checklistItemId], references: [id], onDelete: Cascade)
+  checklistItemId String?
+
+  uploader        User           @relation(fields: [uploaderId], references: [id])
+  uploaderId      String
+
+  createdAt       DateTime       @default(now())
+
+  @@index([issueId])
+  @@index([checklistItemId])
+  @@map("attachments")
+}
+
+// ─────────────────────────────────────────────
+// PROJECT INVITATION (Lời mời tham gia dự án)
+// ─────────────────────────────────────────────
+model ProjectInvitation {
+  id      String           @id @default(cuid())
+  token   String           @unique @default(cuid())
+  status  InvitationStatus @default(PENDING)
+  role    ProjectMemberRole @default(MEMBER)
+
+  expiresAt DateTime
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  invitedUser   User   @relation("InvitedUser", fields: [invitedUserId], references: [id], onDelete: Cascade)
+  invitedUserId String
+
+  invitedBy   User   @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+  invitedById String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([token])
+  @@index([invitedUserId])
+  @@index([projectId])
+  @@map("project_invitations")
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+// ─────────────────────────────────────────────
+// TEST MANAGEMENT: FOLDERS & TEST CASES (Phase 1)
+// ─────────────────────────────────────────────
+
+model TestFolder {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  order       Int          @default(0)
+
+  projectId   String
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  parentId    String?
+  parent      TestFolder?  @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  subFolders  TestFolder[] @relation("FolderHierarchy")
+
+  testCases   TestCase[]
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([projectId, parentId])
+  @@map("test_folders")
+}
+
+enum TestCaseType {
+  MANUAL
+  BDD
+}
+
+enum TestPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model TestCase {
+  id             String          @id @default(cuid())
+  key            String          // Ví dụ: TRE-TC-1
+  title          String
+  description    String?
+  type           TestCaseType    @default(MANUAL)
+  priority       TestPriority    @default(MEDIUM)
+  preconditions  String?
+  gherkinContent String?         // Kịch bản BDD Given-When-Then
+  order          Int             @default(0)
+
+  projectId      String
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  folderId       String?
+  folder         TestFolder?     @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  authorId       String
+  author         User            @relation("TestCaseAuthor", fields: [authorId], references: [id])
+
+  steps          TestStep[]
+  sharedStepLinks TestCaseSharedStep[]
+  testSetLinks   TestSetCase[]
+  testPlanLinks  TestPlanCase[]
+  runResults     TestRunResult[]
+  issues         TestCaseIssue[]
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@unique([projectId, key])
+  @@index([projectId, folderId])
+  @@map("test_cases")
+}
+
+model TestStep {
+  id             String    @id @default(cuid())
+  order          Int       @default(0)
+  action         String    // Hành động kiểm thử
+  testData       String?   // Dữ liệu kiểm thử
+  expectedResult String    // Kết quả mong đợi
+
+  testCaseId     String
+  testCase       TestCase  @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([testCaseId, order])
+  @@map("test_steps")
+}
+
+model TestSharedStep {
+  id             String               @id @default(cuid())
+  title          String               // Ví dụ: "Đăng nhập quyền Admin"
+  action         String
+  testData       String?
+  expectedResult String
+
+  projectId      String
+  project        Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  testCases      TestCaseSharedStep[]
+
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@map("test_shared_steps")
+}
+
+model TestCaseSharedStep {
+  testCaseId   String
+  testCase     TestCase       @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  sharedStepId String
+  sharedStep   TestSharedStep @relation(fields: [sharedStepId], references: [id], onDelete: Cascade)
+  order        Int            @default(0)
+
+  @@id([testCaseId, sharedStepId])
+  @@map("test_case_shared_steps")
+}
+
+// ─────────────────────────────────────────────
+// TEST MANAGEMENT: SETS & PLANS (Phase 2)
+// ─────────────────────────────────────────────
+
+model TestSet {
+  id          String        @id @default(cuid())
+  name        String        // Ví dụ: "Smoke Test Auth", "Regression Payment"
+  description String?
+
+  projectId   String
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  testCases   TestSetCase[]
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([projectId])
+  @@map("test_sets")
+}
+
+model TestSetCase {
+  testSetId  String
+  testSet    TestSet  @relation(fields: [testSetId], references: [id], onDelete: Cascade)
+  testCaseId String
+  testCase   TestCase @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  order      Int      @default(0)
+
+  @@id([testSetId, testCaseId])
+  @@map("test_set_cases")
+}
+
+enum TestPlanStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+  ARCHIVED
+}
+
+enum ExecutionStatus {
+  UNTESTED
+  PASSED
+  FAILED
+  BLOCKED
+  SKIPPED
+}
+
+model TestPlan {
+  id          String         @id @default(cuid())
+  name        String         // Ví dụ: "Kế hoạch QA Sprint 4", "Release v2.0 Regression"
+  description String?
+  status      TestPlanStatus @default(DRAFT)
+  dueDate     DateTime?
+
+  projectId   String
+  project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  sprintId    String?
+  sprint      Sprint?        @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+
+  testCases   TestPlanCase[]
+  testRuns    TestRun[]
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([projectId])
+  @@map("test_plans")
+}
+
+model TestPlanCase {
+  testPlanId String
+  testPlan   TestPlan        @relation(fields: [testPlanId], references: [id], onDelete: Cascade)
+  testCaseId String
+  testCase   TestCase        @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  status     ExecutionStatus @default(UNTESTED)
+  note       String?
+  order      Int             @default(0)
+
+  executedAt DateTime?
+
+  @@id([testPlanId, testCaseId])
+  @@map("test_plan_cases")
+}
+
+// ─────────────────────────────────────────────
+// TEST MANAGEMENT: EXECUTION & DEFECTS (Phase 3)
+// ─────────────────────────────────────────────
+
+model TestEnvironment {
+  id        String    @id @default(cuid())
+  name      String    // Ví dụ: "Staging Chrome", "Production Web", "iOS App", "API Staging"
+  category  String?   // "Web", "Mobile", "API"
+
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  testRuns  TestRun[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([projectId])
+  @@map("test_environments")
+}
+
+enum TestRunStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+model TestRun {
+  id            String           @id @default(cuid())
+  name          String           // Ví dụ: "Test Run 1 - Sprint 5 Cycle"
+  description   String?
+  status        TestRunStatus    @default(IN_PROGRESS)
+
+  projectId     String
+  project       Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  planId        String?
+  plan          TestPlan?        @relation(fields: [planId], references: [id], onDelete: SetNull)
+
+  environmentId String?
+  environment   TestEnvironment? @relation(fields: [environmentId], references: [id], onDelete: SetNull)
+
+  assignedToId  String?
+  assignedTo    User?            @relation("TestRunAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  results       TestRunResult[]
+
+  startedAt     DateTime         @default(now())
+  completedAt   DateTime?
+
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([projectId])
+  @@index([planId])
+  @@map("test_runs")
+}
+
+model TestRunResult {
+  id             String              @id @default(cuid())
+  status         ExecutionStatus     @default(UNTESTED)
+  actualResult   String?             // Ghi chú thực tế lúc chạy
+  elapsedSeconds Int                 @default(0) // Thời gian thực thi (giây)
+
+  testRunId      String
+  testRun        TestRun             @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+
+  testCaseId     String
+  testCase       TestCase            @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+
+  executedById   String?
+  executedBy     User?               @relation("TestRunResultExecutor", fields: [executedById], references: [id], onDelete: SetNull)
+
+  stepResults    TestRunStepResult[]
+  defects        TestRunDefect[]
+
+  executedAt     DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@unique([testRunId, testCaseId])
+  @@index([testRunId])
+  @@index([testCaseId])
+  @@map("test_run_results")
+}
+
+model TestRunStepResult {
+  id           String                  @id @default(cuid())
+  stepId       String                  // ID của TestStep
+  stepOrder    Int
+  status       ExecutionStatus         @default(UNTESTED)
+  actualResult String?
+  comment      String?
+
+  runResultId  String
+  runResult    TestRunResult           @relation(fields: [runResultId], references: [id], onDelete: Cascade)
+
+  attachments  TestRunStepAttachment[]
+
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+
+  @@index([runResultId])
+  @@map("test_run_step_results")
+}
+
+model TestRunStepAttachment {
+  id           String            @id @default(cuid())
+  url          String
+  filename     String
+  publicId     String?
+
+  stepResultId String
+  stepResult   TestRunStepResult @relation(fields: [stepResultId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime          @default(now())
+
+  @@index([stepResultId])
+  @@map("test_run_step_attachments")
+}
+
+model TestRunDefect {
+  runResultId String
+  runResult   TestRunResult @relation(fields: [runResultId], references: [id], onDelete: Cascade)
+
+  issueId     String
+  issue       Issue         @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime      @default(now())
+
+  @@id([runResultId, issueId])
+  @@map("test_run_defects")
+}
+
+model TestCaseIssue {
+  testCaseId String
+  testCase   TestCase @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+
+  issueId    String
+  issue      Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+
+  @@id([testCaseId, issueId])
+  @@map("test_case_issues")
+}
+
+// ─────────────────────────────────────────────
+// AUTOMATION & CI/CD
+// ─────────────────────────────────────────────
+model ApiToken {
+  id          String    @id @default(cuid())
+  name        String
+  tokenHash   String    @unique
+  prefix      String
+  role        String    @default("AUTOMATION") // "AUTOMATION", "FULL_ACCESS", "READ_ONLY"
+
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  userId      String
+  createdBy   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  expiresAt   DateTime?
+  lastUsedAt  DateTime?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([projectId])
+  @@index([tokenHash])
+  @@map("api_tokens")
+}
+
+model Webhook {
+  id          String    @id @default(cuid())
+  name        String
+  url         String
+  secret      String?
+  events      String[]  @default(["TEST_RUN_COMPLETED"])
+  isActive    Boolean   @default(true)
+
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([projectId])
+  @@map("webhooks")
+}
+
